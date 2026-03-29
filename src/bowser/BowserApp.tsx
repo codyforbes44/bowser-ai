@@ -8,7 +8,7 @@ import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/S
 import { CommandPalette } from './components/CommandPalette';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
-import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay } from './utils/urlHelpers';
+import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay, parseBreadcrumb } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
 import { parseOmniboxInput } from './utils/navigation';
@@ -209,17 +209,17 @@ const BowserApp: React.FC = () => {
     generate(actionPrompt, currentPage.html, activeTab.breadcrumb, false, formState);
   }, [generate, currentPage, activeTab.breadcrumb]);
 
-  const handleOmnibarNavigate = useCallback((type: 'create' | 'edit', prompt: string) => {
+  const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
     const tab = tabs[activeTabIndex];
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
     if (decision.error) {
-      // Error is now handled by AddressBar via parseOmniboxInput
+      // Error is handled by AddressBar via its own parseOmniboxInput call
       return;
     }
 
     if (decision.kind === 'web') {
-      updateTab(activeTabIndex, t => ({
+      updateTabById(tab.id, t => ({
         ...t, tabKind: 'web', browserUrl: decision.url,
         breadcrumb: { sitename: decision.url, page: '' }, navigationId: t.navigationId + 1
       }));
@@ -228,25 +228,29 @@ const BowserApp: React.FC = () => {
     }
 
     if (decision.kind === 'ai') {
-      updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
-      if (type === 'create') {
-        const fallback: Breadcrumb = { sitename: decision.query || prompt, page: 'Home' };
-        generate(decision.query || prompt, null, fallback, true);
+      updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
+      // Determine create vs edit based on breadcrumb comparison
+      const parsed = parseBreadcrumb(prompt);
+      const isEdit = parsed.sitename === activeTab.breadcrumb.sitename && parsed.page && parsed.page !== activeTab.breadcrumb.page;
+      
+      if (isEdit && currentPage) {
+        const fallback: Breadcrumb = { sitename: activeTab.breadcrumb.sitename, page: parsed.page };
+        generate(parsed.page, currentPage.html, fallback, false);
       } else {
-        if (!currentPage) return;
-        const fallback: Breadcrumb = { sitename: activeTab.breadcrumb.sitename, page: decision.query || prompt };
-        generate(decision.query || prompt, currentPage.html, fallback, false);
+        const query = decision.query || prompt;
+        const fallback: Breadcrumb = { sitename: query, page: 'Home' };
+        generate(query, null, fallback, true);
       }
       addHistoryEntry({ url: decision.query || prompt, title: decision.query || prompt, tabKind: 'ai' });
       return;
     }
 
-    updateTab(activeTabIndex, t => ({
+    updateTabById(tab.id, t => ({
       ...t, tabKind: decision.kind, browserUrl: undefined,
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: decision.kind, page: '' },
     }));
-  }, [generate, currentPage, activeTab.breadcrumb, tabs, activeTabIndex, updateTab, addHistoryEntry]);
+  }, [generate, currentPage, activeTab.breadcrumb, tabs, activeTabIndex, updateTabById, addHistoryEntry]);
 
   const handleBack = useCallback(() => {
     if (activeTab.tabKind === 'web') return;
@@ -315,11 +319,9 @@ const BowserApp: React.FC = () => {
     });
   }, []);
 
-  // Actually creates an AI-mode tab, not a duplicate of handleNewTab
+  // New AI tab: opens as new-tab, converts to 'ai' on first prompt (onCreatePage already does this)
   const handleNewAiTab = useCallback(() => {
     const newTab = createTab('new-tab');
-    // Mark as AI kind so the tab opens in AI mode
-    newTab.tabKind = 'ai';
     setTabs(prev => {
       const next = [...prev, newTab];
       queueMicrotask(() => setActiveTabIndex(next.length - 1));
@@ -542,6 +544,7 @@ const BowserApp: React.FC = () => {
           />
         ) : (
           <Sandbox
+            key={activeTab.navigationId}
             htmlContent={displayContent}
             onNavigate={handleLinkClick}
             onAction={handleAction}

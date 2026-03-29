@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Breadcrumb } from '../types';
-import { parseBreadcrumb, breadcrumbToDisplay } from '../utils/urlHelpers';
+import { breadcrumbToDisplay } from '../utils/urlHelpers';
 import { getStorageItem, setStorageItem } from '../utils/storage';
 import { parseOmniboxInput } from '../utils/navigation';
 
@@ -141,21 +141,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     setError(null);
     addToHistory(decision.url || query);
 
-    if (decision.kind === 'ai' || (!isBrowserMode && decision.kind !== 'web')) {
-      const edited = parseBreadcrumb(query);
-      if (!edited.page && breadcrumb.page) {
-        onNavigate('create', edited.sitename);
-      } else if (edited.sitename !== breadcrumb.sitename) {
-        onNavigate('create', query);
-      } else if (edited.page !== breadcrumb.page) {
-        onNavigate('edit', edited.page);
-      } else {
-        onRefresh();
-      }
-      return true;
-    }
-
-    onNavigate('create', decision.url);
+    // Delegate all routing decisions to BowserApp via onNavigate
+    onNavigate('create', query);
     return true;
   };
 
