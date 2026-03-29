@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bookmark, BookmarkFolder, TabKind } from '../types';
+import { InstallPrompt } from './InstallPrompt';
 
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
