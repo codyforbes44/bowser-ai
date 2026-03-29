@@ -586,6 +586,7 @@ const BowserApp: React.FC = () => {
             onNavigateToBookmark={navigateToBookmarkUrl}
             onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
             history={history}
+            onShowOnboarding={() => setShowOnboarding(true)}
           />
         ) : activeTab.tabKind === 'history' ? (
           <HistoryTab
