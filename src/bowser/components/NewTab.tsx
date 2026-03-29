@@ -26,10 +26,10 @@ const LUCKY_PROMPTS = [
   "A ferry timetable for an island archipelago with route maps",
 ];
 
-export const NewTab: React.FC<NewTabProps> = ({ 
-  onCreatePage, 
-  isGrounded, 
-  onToggleGrounding, 
+export const NewTab: React.FC<NewTabProps> = ({
+  onCreatePage,
+  isGrounded,
+  onToggleGrounding,
   bookmarks,
   onNavigateToBookmark,
   onOpenBookmarks,
@@ -69,7 +69,17 @@ export const NewTab: React.FC<NewTabProps> = ({
 
   return (
     <div className="newtab-page overflow-y-auto">
-      <div className="newtab-content min-h-full py-12">
+      <div className="newtab-content min-h-full py-16">
+        {/* Wordmark */}
+        <div className="flex flex-col items-center gap-1 mb-4">
+          <h1
+            className="text-[28px] font-semibold tracking-tight"
+            style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.03em' }}
+          >
+            Bowser
+          </h1>
+        </div>
+
         <form onSubmit={handleSubmit} className="newtab-form">
           <div className="newtab-input-row">
             <input
@@ -77,75 +87,104 @@ export const NewTab: React.FC<NewTabProps> = ({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="newtab-input"
-              placeholder="Imagine any website..."
+              placeholder="Describe any website…"
               aria-label="Describe a website to generate"
               autoFocus
             />
             <button type="submit" className="newtab-submit" aria-label="Submit">
-              <span className="material-symbols-outlined">keyboard_return</span>
+              <span className="material-symbols-outlined">arrow_forward</span>
             </button>
           </div>
         </form>
 
-        <div className="flex flex-col items-center gap-6 mt-4">
+        <div className="flex flex-col items-center gap-4 mt-2">
           <div className="newtab-buttons">
-            <button onClick={handleHowItWorks} className="newtab-btn newtab-how-it-works">
-              How does this work?
+            <button onClick={handleHowItWorks} className="newtab-btn">
+              How it works
             </button>
-            <button onClick={handleLucky} className="newtab-btn newtab-lucky">
-              I'm Feeling Lucky
+            <button onClick={handleLucky} className="newtab-btn">
+              Surprise me
             </button>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#1e1f23] px-4 py-2 rounded-full border border-white/10 hover:border-white/20 transition-colors cursor-pointer" onClick={onToggleGrounding}>
-            <span className={`material-symbols-outlined text-xl ${isGrounded ? 'text-blue-400' : 'text-gray-500'}`}>
+          {/* Grounding toggle */}
+          <button
+            onClick={onToggleGrounding}
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg transition-colors"
+            style={{
+              background: isGrounded ? 'var(--bw-accent-subtle)' : 'transparent',
+              border: `1px solid ${isGrounded ? 'var(--bw-accent)' : 'var(--bw-border)'}`,
+            }}
+          >
+            <span
+              className="material-symbols-outlined text-base"
+              style={{ color: isGrounded ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}
+            >
               language
             </span>
-            <span className="text-sm text-gray-300 font-medium select-none">Real-time Web Browsing</span>
-            <div
-              className={`toggle-track ${isGrounded ? 'active' : ''}`}
-              role="switch"
-              aria-checked={isGrounded}
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onToggleGrounding(); }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onToggleGrounding();
-                }
-              }}
+            <span
+              className="text-xs font-medium"
+              style={{ color: isGrounded ? 'var(--bw-accent)' : 'var(--bw-text-tertiary)' }}
             >
-              <div className="toggle-thumb" />
-            </div>
-          </div>
+              Real-time browsing {isGrounded ? 'on' : 'off'}
+            </span>
+          </button>
+
           <InstallPrompt />
         </div>
 
+        {/* Favorites */}
         {topBookmarks.length > 0 && (
-          <div className="mt-14 w-full max-w-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Favorites</h2>
+          <div className="mt-12 w-full max-w-md">
+            <div className="flex items-center justify-between mb-3">
+              <h2
+                className="text-[11px] font-medium uppercase tracking-widest"
+                style={{ color: 'var(--bw-text-quaternary)' }}
+              >
+                Favorites
+              </h2>
               {bookmarks.length > 8 && (
                 <button
                   onClick={onOpenBookmarks}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  className="text-[11px] font-medium transition-colors"
+                  style={{ color: 'var(--bw-text-quaternary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-secondary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
                 >
-                  See all bookmarks →
+                  View all →
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {topBookmarks.map(bookmark => (
                 <button
                   key={bookmark.id}
                   onClick={() => onNavigateToBookmark(bookmark.url, bookmark.tabKind)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#1e1f23] border border-white/5 hover:border-white/15 hover:bg-[#28292d] transition-all group"
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all group"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid transparent',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--bw-bg-hover)';
+                    e.currentTarget.style.borderColor = 'var(--bw-border)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = 'transparent';
+                  }}
                   title={bookmark.title}
                 >
-                  <span className={`material-symbols-outlined text-xl ${bookmark.tabKind === 'web' ? 'text-green-400/70' : 'text-blue-400/70'} group-hover:scale-110 transition-transform`}>
+                  <span
+                    className="material-symbols-outlined text-lg transition-transform group-hover:scale-105"
+                    style={{ color: bookmark.tabKind === 'web' ? 'var(--bw-green)' : 'var(--bw-accent)', opacity: 0.7 }}
+                  >
                     {bookmark.tabKind === 'web' ? 'public' : 'auto_awesome'}
                   </span>
-                  <span className="text-[11px] text-gray-400 truncate w-full text-center group-hover:text-gray-200 transition-colors">
+                  <span
+                    className="text-[11px] truncate w-full text-center transition-colors"
+                    style={{ color: 'var(--bw-text-tertiary)' }}
+                  >
                     {bookmark.title}
                   </span>
                 </button>

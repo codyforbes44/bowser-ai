@@ -129,7 +129,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     };
   }, [menuOpen]);
 
-  // Delegate all input parsing to the navigation utility
   const navigateWithQuery = (query: string): boolean => {
     const currentKind = isBrowserMode ? 'web' as const : 'ai' as const;
     const decision = parseOmniboxInput(query, currentKind);
@@ -142,7 +141,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     setError(null);
     addToHistory(decision.url || query);
 
-    // For AI mode, determine create vs edit based on breadcrumb context
     if (decision.kind === 'ai' || (!isBrowserMode && decision.kind !== 'web')) {
       const edited = parseBreadcrumb(query);
       if (!edited.page && breadcrumb.page) {
@@ -157,7 +155,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       return true;
     }
 
-    // Web URLs and system pages
     onNavigate('create', decision.url);
     return true;
   };
@@ -215,7 +212,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   };
 
   const displayValue = isLoading && !isFocused && !breadcrumb.page
-    ? 'Generating...'
+    ? 'Generating…'
     : isFocused ? inputVal : inputVal.replace(/\./g, ' › ');
 
   return (
@@ -227,7 +224,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Go forward" aria-label="Go forward">
           <span className="material-symbols-outlined">arrow_forward</span>
         </button>
-        <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop loading' : 'Refresh'} aria-label={isLoading ? 'Stop loading' : 'Refresh'}>
+        <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Refresh'} aria-label={isLoading ? 'Stop loading' : 'Refresh'}>
           <span className="material-symbols-outlined">{isLoading ? 'close' : 'refresh'}</span>
         </button>
         <button onClick={onHome} className="nav-btn" title="Home" aria-label="Home">
@@ -250,42 +247,66 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
-                className={`omnibar-input pr-10 ${error ? '!border-red-500/50 focus:!border-red-500/70 !bg-red-500/5' : ''}`}
+                className="omnibar-input pr-10"
+                style={error ? { borderColor: 'var(--bw-red)', background: 'var(--bw-red-subtle)' } : undefined}
                 aria-label="Address bar — enter a URL or prompt"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9aa0a6] hover:text-[#e8eaed] p-1 rounded-full hover:bg-[#3c4043] flex items-center justify-center transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded flex items-center justify-center transition-colors"
+                style={{ color: 'var(--bw-text-quaternary)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
                 title="Go"
                 aria-label="Navigate"
                 onMouseDown={(e) => { e.preventDefault(); }}
               >
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </button>
             </div>
           )}
           {error && (
-            <div className="absolute top-full left-0 mt-1 bg-[#2a1010] text-red-400 text-xs px-3 py-1.5 rounded-md border border-red-500/20 whitespace-nowrap z-50 shadow-lg" role="alert">
+            <div
+              className="absolute top-full left-0 mt-1 text-xs px-3 py-1.5 rounded-md whitespace-nowrap z-50"
+              style={{
+                background: 'var(--bw-bg-elevated)',
+                color: 'var(--bw-red)',
+                border: '1px solid var(--bw-border)',
+                boxShadow: 'var(--bw-shadow-md)',
+              }}
+              role="alert"
+            >
               {error}
             </div>
           )}
           {isFocused && searchHistory.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-[#292a2d] border border-[#3c4043] rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+            <div
+              className="absolute top-full left-0 right-0 mt-1 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto"
+              style={{
+                background: 'var(--bw-bg-elevated)',
+                border: '1px solid var(--bw-border)',
+                boxShadow: 'var(--bw-shadow-lg)',
+              }}
+            >
               {searchHistory.map((item, idx) => (
                 <div
                   key={idx}
-                  className="px-4 py-2 text-sm text-[#e8eaed] hover:bg-[#3c4043] cursor-pointer flex items-center gap-3"
+                  className="px-3 py-2 text-sm cursor-pointer flex items-center gap-3 transition-colors"
+                  style={{ color: 'var(--bw-text-primary)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleHistoryClick(item);
                   }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span className="material-symbols-outlined text-[16px] text-[#9aa0a6]">
+                  <span className="material-symbols-outlined text-[14px]" style={{ color: 'var(--bw-text-quaternary)' }}>
                     {item.startsWith('http') ? 'public' : 'history'}
                   </span>
-                  <span className="truncate flex-1">{item}</span>
-                  <button 
-                    className="ml-auto text-[#9aa0a6] hover:text-[#e8eaed] p-1 rounded-full hover:bg-[#4a4d51] flex items-center justify-center"
+                  <span className="truncate flex-1 text-[13px]">{item}</span>
+                  <button
+                    className="ml-auto p-0.5 rounded flex items-center justify-center transition-colors"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -294,7 +315,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                     title="Remove from history"
                     aria-label={`Remove ${item} from search history`}
                   >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <span className="material-symbols-outlined text-[13px]">close</span>
                   </button>
                 </div>
               ))}
@@ -307,7 +328,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         type="button"
         onClick={onToggleBookmark}
         disabled={!canBookmark}
-        className={`nav-btn ${isBookmarked ? 'text-blue-400' : ''} ${!canBookmark ? 'disabled' : ''}`}
+        className={`nav-btn ${!canBookmark ? 'disabled' : ''}`}
+        style={{ color: isBookmarked ? 'var(--bw-accent)' : undefined }}
         title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
         aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
       >
@@ -316,38 +338,56 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         </span>
       </button>
 
-      <div className="flex items-center gap-2 ml-2 mr-2 bg-[#1e1f23] px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition-colors cursor-pointer" onClick={onToggleBrowserMode}>
-        <span className={`text-xs font-medium select-none ${!isBrowserMode ? 'text-blue-400' : 'text-gray-500'}`}>AI</span>
+      {/* Mode toggle */}
+      <button
+        onClick={onToggleBrowserMode}
+        className="flex items-center gap-1.5 ml-1 mr-1 px-2.5 py-1.5 rounded-md transition-colors"
+        style={{ border: '1px solid var(--bw-border)', background: 'transparent' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        aria-label={`Switch to ${isBrowserMode ? 'AI' : 'Web'} mode`}
+      >
+        <span
+          className="text-[11px] font-semibold select-none"
+          style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}
+        >
+          AI
+        </span>
         <div
           className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
           role="switch"
           aria-checked={isBrowserMode}
-          aria-label="Toggle between AI and Web mode"
-          style={{ width: '28px', height: '16px' }}
+          style={{ width: '26px', height: '14px' }}
         >
-          <div className="toggle-thumb" style={{ width: '12px', height: '12px', top: '2px', left: '2px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />
+          <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />
         </div>
-        <span className={`text-xs font-medium select-none ${isBrowserMode ? 'text-blue-400' : 'text-gray-500'}`}>Web</span>
-      </div>
+        <span
+          className="text-[11px] font-semibold select-none"
+          style={{ color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-text-quaternary)' }}
+        >
+          Web
+        </span>
+      </button>
 
       <button
         onClick={onToggleGrounding}
-        className={`nav-btn ${isGrounded ? 'text-blue-400' : ''}`}
-        title={isGrounded ? 'Disable Real-time Web Browsing' : 'Enable Real-time Web Browsing'}
-        aria-label={isGrounded ? 'Disable Real-time Web Browsing' : 'Enable Real-time Web Browsing'}
+        className="nav-btn"
+        style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
+        title={isGrounded ? 'Disable real-time browsing' : 'Enable real-time browsing'}
+        aria-label={isGrounded ? 'Disable real-time browsing' : 'Enable real-time browsing'}
         aria-pressed={isGrounded}
       >
         <span className="material-symbols-outlined">language</span>
       </button>
 
       <div className="menu-container" ref={menuRef}>
-        <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More options" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
+        <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
           <span className="material-symbols-outlined">more_vert</span>
         </button>
         {menuOpen && (
           <div className="dropdown-menu" role="menu">
             <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-              <span>Real-time Web Browsing</span>
+              <span className="text-[13px]">Real-time browsing</span>
               <div
                 className={`toggle-track ${isGrounded ? 'active' : ''}`}
                 onClick={onToggleGrounding}
