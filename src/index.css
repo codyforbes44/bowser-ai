@@ -659,7 +659,37 @@ body {
   border-color: var(--bw-border-focus);
 }
 
-/* ==========================================
+/* Reusable chip base */
+.bw-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--bw-radius-sm);
+  border: 1px solid var(--bw-border);
+  color: var(--bw-text-tertiary);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  touch-action: manipulation;
+}
+
+/* Hover utilities */
+.bw-hover-bg { transition: background 0.12s ease; }
+.bw-hover-bg:hover { background: var(--bw-bg-hover); }
+.bw-hover-text { transition: color 0.1s ease; }
+.bw-hover-text:hover { color: var(--bw-text-secondary); }
+.bw-hover-accent { transition: color 0.1s ease; }
+.bw-hover-accent:hover { color: var(--bw-accent); }
+
+/* Responsive bookmark grid */
+.newtab-bookmark-grid { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 359px) {
+  .newtab-bookmark-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
    COMMAND PALETTE
    ========================================== */
 
