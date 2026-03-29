@@ -269,6 +269,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           {isFocused && searchHistory.length > 0 && (
             <div
               className="absolute top-full left-0 right-0 mt-1 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto"
+              role="listbox"
+              aria-label="Search history"
               style={{
                 background: 'var(--bw-bg-elevated)',
                 border: '1px solid var(--bw-border)',
@@ -279,6 +281,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 <div
                   key={idx}
                   className="px-3 py-2 text-sm cursor-pointer flex items-center gap-3 transition-colors"
+                  role="option"
+                  aria-selected={false}
                   style={{ color: 'var(--bw-text-primary)' }}
                   onMouseDown={(e) => {
                     e.preventDefault();
