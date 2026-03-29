@@ -6,23 +6,33 @@ import { HistoryTab } from './components/HistoryTab';
 import { BookmarksTab } from './components/BookmarksTab';
 import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { CommandPalette } from './components/CommandPalette';
+import { AiSidePanel } from './components/AiSidePanel';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
 import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay, parseBreadcrumb } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
 import { parseOmniboxInput } from './utils/navigation';
+import { saveWorkspace, restoreWorkspace, addRecentlyClosed, popRecentlyClosed, addRecentPrompt } from './store/session';
 
 const BowserApp: React.FC = () => {
-  const [tabs, setTabs] = useState<Tab[]>([createTab('web')]);
+  // Restore workspace from session, or default to a single web tab
+  const [tabs, setTabs] = useState<Tab[]>(() => {
+    const restored = restoreWorkspace();
+    return restored && restored.length > 0 ? restored : [createTab('web')];
+  });
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isGrounded, setIsGrounded] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
+
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
 
   useEffect(() => { applyBowserTheme(getEffectiveTheme()); }, []);
+
+  // Persist workspace when tabs change
+  useEffect(() => { saveWorkspace(tabs); }, [tabs]);
 
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
@@ -36,11 +46,6 @@ const BowserApp: React.FC = () => {
     setTabs(prev => prev.map(t => t.id === tabId ? updater(t) : t));
   }, []);
 
-  // Legacy index-based updater for cases where we know the index is stable (same render frame)
-  const updateTab = useCallback((tabIndex: number, updater: (tab: Tab) => Tab) => {
-    setTabs(prev => prev.map((t, i) => i === tabIndex ? updater(t) : t));
-  }, []);
-
   const generate = useCallback(async (
     prompt: string,
     currentHtml: string | null,
@@ -49,7 +54,6 @@ const BowserApp: React.FC = () => {
     formState?: FormFieldState[],
     targetTabId?: string,
   ) => {
-    // Capture tab ID at call time — immune to tab switching
     const tabId = targetTabId || tabs[activeTabIndex]?.id;
     if (!tabId) return;
 
@@ -177,6 +181,7 @@ const BowserApp: React.FC = () => {
   }, [activeTab, updateTabById]);
 
   const handleCreate = useCallback((prompt: string) => {
+    addRecentPrompt(prompt);
     const fallback: Breadcrumb = { sitename: siteNameFromPrompt(prompt), page: 'Home' };
     generate(prompt, null, fallback, true);
   }, [generate]);
@@ -214,7 +219,6 @@ const BowserApp: React.FC = () => {
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
     if (decision.error) {
-      // Error is handled by AddressBar via its own parseOmniboxInput call
       return;
     }
 
@@ -229,15 +233,15 @@ const BowserApp: React.FC = () => {
 
     if (decision.kind === 'ai') {
       updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
-      // Determine create vs edit based on breadcrumb comparison
       const parsed = parseBreadcrumb(prompt);
       const isEdit = parsed.sitename === activeTab.breadcrumb.sitename && parsed.page && parsed.page !== activeTab.breadcrumb.page;
-      
+
       if (isEdit && currentPage) {
         const fallback: Breadcrumb = { sitename: activeTab.breadcrumb.sitename, page: parsed.page };
         generate(parsed.page, currentPage.html, fallback, false);
       } else {
         const query = decision.query || prompt;
+        addRecentPrompt(query);
         const fallback: Breadcrumb = { sitename: query, page: 'Home' };
         generate(query, null, fallback, true);
       }
@@ -308,18 +312,15 @@ const BowserApp: React.FC = () => {
     }));
   }, [activeTab, updateTabById]);
 
-  // Atomic new tab: single state update to avoid race between setTabs and setActiveTabIndex
   const handleNewTab = useCallback(() => {
     const newTab = createTab('new-tab');
     setTabs(prev => {
       const next = [...prev, newTab];
-      // Defer index update to after tabs update, using the known length
       queueMicrotask(() => setActiveTabIndex(next.length - 1));
       return next;
     });
   }, []);
 
-  // New AI tab: opens as new-tab, converts to 'ai' on first prompt (onCreatePage already does this)
   const handleNewAiTab = useCallback(() => {
     const newTab = createTab('new-tab');
     setTabs(prev => {
@@ -329,11 +330,14 @@ const BowserApp: React.FC = () => {
     });
   }, []);
 
-  // Atomic close: compute new index deterministically before setting state
+  // Atomic close with recently-closed tracking
   const handleCloseTab = useCallback((index: number) => {
     const closingTab = tabs[index];
     const controller = abortControllersRef.current.get(closingTab.id);
     if (controller) { controller.abort(); abortControllersRef.current.delete(closingTab.id); }
+
+    // Track closed tab for reopen
+    addRecentlyClosed(closingTab);
 
     if (tabs.length === 1) {
       const newTab = createTab('web');
@@ -341,10 +345,8 @@ const BowserApp: React.FC = () => {
       setActiveTabIndex(0);
     } else {
       const newTabs = tabs.filter((_, i) => i !== index);
-      // Compute new active index deterministically
       let newActiveIndex: number;
       if (activeTabIndex === index) {
-        // Closed the active tab — prefer the tab to the right, else left
         newActiveIndex = Math.min(index, newTabs.length - 1);
       } else if (activeTabIndex > index) {
         newActiveIndex = activeTabIndex - 1;
@@ -355,6 +357,57 @@ const BowserApp: React.FC = () => {
       setActiveTabIndex(newActiveIndex);
     }
   }, [tabs, activeTabIndex]);
+
+  // Reopen most recently closed tab
+  const handleReopenClosedTab = useCallback(() => {
+    const closed = popRecentlyClosed();
+    if (!closed) return;
+
+    if (closed.tabKind === 'web' && closed.browserUrl) {
+      const newTab = createTab('web');
+      newTab.browserUrl = closed.browserUrl;
+      newTab.breadcrumb = { sitename: closed.browserUrl, page: '' };
+      setTabs(prev => {
+        const next = [...prev, newTab];
+        queueMicrotask(() => setActiveTabIndex(next.length - 1));
+        return next;
+      });
+    } else if (closed.tabKind === 'ai' && closed.lastPrompt) {
+      const newTab = createTab('new-tab');
+      setTabs(prev => {
+        const next = [...prev, newTab];
+        queueMicrotask(() => setActiveTabIndex(next.length - 1));
+        return next;
+      });
+      // Regenerate the AI page
+      setTimeout(() => {
+        updateTabById(newTab.id, t => ({ ...t, tabKind: 'ai' }));
+        const prompt = closed.lastPrompt!;
+        const fallback: Breadcrumb = { sitename: siteNameFromPrompt(prompt), page: 'Home' };
+        generate(prompt, null, fallback, true, undefined, newTab.id);
+      }, 100);
+    } else {
+      // System page or unknown — open as system page or new tab
+      const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'new-tab';
+      const newTab = createTab(kind);
+      newTab.breadcrumb = { sitename: kind, page: '' };
+      setTabs(prev => {
+        const next = [...prev, newTab];
+        queueMicrotask(() => setActiveTabIndex(next.length - 1));
+        return next;
+      });
+    }
+  }, [generate, updateTabById]);
+
+  // Tab rename
+  const handleRenameTab = useCallback((tabId: string, newTitle: string) => {
+    updateTabById(tabId, tab => ({ ...tab, customTitle: newTitle }));
+  }, [updateTabById]);
+
+  // Tab pin toggle
+  const handlePinTab = useCallback((tabId: string) => {
+    updateTabById(tabId, tab => ({ ...tab, pinned: !tab.pinned }));
+  }, [updateTabById]);
 
   const handleSwitchTab = useCallback((index: number) => {
     setActiveTabIndex(index);
@@ -376,7 +429,7 @@ const BowserApp: React.FC = () => {
     const tab = tabs[activeTabIndex];
     let url = '';
     let title = '';
-    
+
     if (tab.tabKind === 'web') {
       url = tab.browserUrl || '';
       title = tab.breadcrumb.sitename || url;
@@ -430,7 +483,7 @@ const BowserApp: React.FC = () => {
         handleNewTab();
       } else if (e.key === 'T' && e.shiftKey) {
         e.preventDefault();
-        handleNewAiTab();
+        handleReopenClosedTab();
       } else if (e.key === 'w') {
         if (tabs.length > 1) {
           e.preventDefault();
@@ -445,25 +498,30 @@ const BowserApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tabs, activeTabIndex, handleNewTab, handleNewAiTab, handleCloseTab, handleSwitchTab]);
+  }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab]);
 
   const isMac = /Mac/i.test(navigator.userAgent);
   const modLabel = isMac ? '⌘' : 'Ctrl+';
 
   const commandActions = [
     { id: 'new-tab', label: 'New Tab', icon: 'add', shortcut: `${modLabel}T`, section: 'Tabs', onExecute: handleNewTab },
-    { id: 'new-ai-tab', label: 'New AI Tab', icon: 'auto_awesome', shortcut: `${modLabel}Shift+T`, section: 'Tabs', onExecute: handleNewAiTab },
+    { id: 'reopen-tab', label: 'Reopen Closed Tab', icon: 'restore', shortcut: `${modLabel}Shift+T`, section: 'Tabs', onExecute: handleReopenClosedTab },
     { id: 'close-tab', label: 'Close Tab', icon: 'close', shortcut: `${modLabel}W`, section: 'Tabs', onExecute: () => { if (tabs.length > 1) handleCloseTab(activeTabIndex); } },
+    { id: 'pin-tab', label: activeTab.pinned ? 'Unpin Tab' : 'Pin Tab', icon: activeTab.pinned ? 'keep_off' : 'keep', section: 'Tabs', onExecute: () => handlePinTab(activeTab.id) },
     { id: 'focus-bar', label: 'Focus Address Bar', icon: 'search', shortcut: `${modLabel}L`, section: 'Navigation', onExecute: () => window.dispatchEvent(new Event('bowser:focus-omnibar')) },
     { id: 'open-history', label: 'Open History', icon: 'history', section: 'Navigation', onExecute: () => navigateToSystemPage('history') },
     { id: 'open-bookmarks', label: 'Open Bookmarks', icon: 'bookmarks', section: 'Navigation', onExecute: () => navigateToSystemPage('bookmarks') },
     { id: 'open-settings', label: 'Open Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
+    { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
     { id: 'toggle-mode', label: 'Toggle AI/Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
     { id: 'toggle-grounding', label: 'Toggle Real-time Browsing', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
   ];
 
   const isNewTab = activeTab.tabKind === 'new-tab' || (activeTab.currentIndex === -1 && !activeTab.loading && activeTab.tabKind !== 'web');
   const displayContent = activeTab.loading ? activeTab.generatedContent : (currentPage?.html || '');
+
+  // Side panel content — only available for AI pages
+  const sidePanelHtml = activeTab.tabKind === 'ai' && currentPage ? currentPage.html : null;
 
   return (
     <>
@@ -494,6 +552,18 @@ const BowserApp: React.FC = () => {
         isBookmarked={isBookmarked(activeTab.tabKind === 'web' ? (activeTab.browserUrl || '') : (currentPage?.prompt || ''))}
         onToggleBookmark={handleToggleBookmark}
         canBookmark={!isNewTab && activeTab.tabKind !== 'history' && activeTab.tabKind !== 'bookmarks' && activeTab.tabKind !== 'settings'}
+        onRenameTab={handleRenameTab}
+        onPinTab={handlePinTab}
+        sidePanelOpen={sidePanelOpen}
+        onToggleSidePanel={() => setSidePanelOpen(prev => !prev)}
+        sidePanel={
+          <AiSidePanel
+            isOpen={sidePanelOpen}
+            onClose={() => setSidePanelOpen(false)}
+            pageHtml={sidePanelHtml}
+            tabKind={activeTab.tabKind}
+          />
+        }
       >
         {isNewTab ? (
           <NewTab
@@ -506,6 +576,7 @@ const BowserApp: React.FC = () => {
             bookmarks={bookmarks}
             onNavigateToBookmark={navigateToBookmarkUrl}
             onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
+            history={history}
           />
         ) : activeTab.tabKind === 'history' ? (
           <HistoryTab
