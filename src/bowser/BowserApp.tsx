@@ -19,7 +19,7 @@ import { getTabLimit, applyFontScale, getFontSize } from './hooks/useBowserSetti
 import { useSwipeGesture } from './hooks/useSwipeGesture';
 
 const BowserApp: React.FC = () => {
-  const [isGrounded, setIsGrounded] = useState(false);
+  const [isGrounded, setIsGrounded] = useState(true);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
