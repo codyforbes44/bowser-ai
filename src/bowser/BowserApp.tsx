@@ -7,7 +7,7 @@ import { AiSidePanel } from './components/AiSidePanel';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
-import { getStorageItem, setStorageItem } from './utils/storage';
+import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
