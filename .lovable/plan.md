@@ -1,92 +1,77 @@
 
 
-# Evolve Bowser: Command Palette, Keyboard Shortcuts, and Polished Built-in Pages
+# Bowser: Architecture, State, Accessibility, and Honesty Fixes
 
-## Overview
+## Problems Found
 
-Add a command palette (Ctrl/Cmd+K), keyboard shortcuts for core actions, improve the existing History/Bookmarks/Settings pages with better empty states and loading skeletons, strip heavy bookmark management from NewTab, and add visual tab-kind indicators.
+After thorough review, these are the real issues — not cosmetic, but structural, behavioral, and honest-UI problems.
 
-## Changes
+### 1. Stale closure bug in `generate`
+`generate` captures `activeTabIndex` at call time and uses it throughout the async stream. If the user switches tabs mid-generation, updates write to the wrong tab. Fix: capture `tabId` instead of index, and resolve the index inside each `updateTab` call using the `tabs` array, or switch `updateTab` to accept a tab ID.
 
-### 1. Command Palette Component
-**New file**: `src/bowser/components/CommandPalette.tsx`
+### 2. Race condition in `handleNewTab` / `handleNewAiTab`
+Both call `setActiveTabIndex(tabs.length)` outside the `setTabs` updater. Two rapid calls can set the same index. Fix: use a single `setTabs` + derive activeTabIndex, or use a ref-based approach.
 
-A modal overlay triggered by Ctrl/Cmd+K with a search input and filterable action list:
-- New Tab, New AI Tab, New Web Tab
-- Open History (`bowser://history`), Open Bookmarks (`bowser://bookmarks`), Open Settings (`bowser://settings`)
-- Toggle AI/Web Mode, Toggle Real-time Browsing
-- Focus Address Bar
+### 3. `handleNewAiTab` is a lie
+It does the exact same thing as `handleNewTab` — creates a `new-tab`. The command palette advertises "New AI Tab" but delivers a generic new tab. Fix: either make it actually open a tab in AI mode, or remove the distinction.
 
-Uses a simple custom implementation (no cmdk dependency needed — keep it lightweight). Renders as a centered modal with backdrop blur, keyboard-navigable list with arrow keys + Enter. Closes on Escape or backdrop click.
+### 4. Dead prop drilling through BrowserShell
+`BrowserShell` receives 7 bookmark-related props (`bookmarks`, `bookmarkFolders`, `onCreateBookmarkFolder`, etc.) that it never uses or passes down. These were needed when NewTab was rendered inside BrowserShell with bookmark management. Now NewTab is a child passed via `children`. Fix: remove all unused bookmark props from BrowserShell's interface.
 
-### 2. Global Keyboard Shortcuts
-**Edit**: `src/bowser/BowserApp.tsx`
+### 5. Settings page has fake controls
+"Default Search Engine" dropdown and "Enable AI Search" toggle look functional but do nothing — no persistence, no wiring. This violates "keep Bowser honest." Fix: remove them, or wire them to actual state with persistence.
 
-Add a `useEffect` with a global `keydown` listener for:
-- `Ctrl/Cmd+K` → open command palette
-- `Ctrl/Cmd+L` → focus address bar (via a ref or custom event)
-- `Ctrl/Cmd+T` → new tab
-- `Ctrl/Cmd+W` → close current tab (only if >1 tab open, prevent default)
-- `Ctrl/Cmd+1-9` → switch to tab N (9 = last tab)
-- `Ctrl/Cmd+Shift+T` → new AI tab
+### 6. Tab close index edge case
+When closing the active tab that's also the last tab, `activeTabIndex >= index && activeTabIndex > 0` decrements correctly, but the state updates (`setTabs` and `setActiveTabIndex`) are separate calls creating a render frame where `activeTabIndex` may point beyond the array. Fix: combine into a single state update or guard `activeTab` derivation.
 
-Expose an `addressBarRef` callback or dispatch a custom `bowser:focus-omnibar` event that AddressBar listens to.
+### 7. AddressBar duplicates navigation parsing
+`AddressBar.navigateWithQuery` has its own URL validation, breadcrumb parsing, and navigation mode logic that partially overlaps with `parseOmniboxInput` in `utils/navigation.ts`. Fix: consolidate — AddressBar should delegate all parsing to the navigation utility, keeping only UI concerns (focus, display, error state).
 
-### 3. Simplify NewTab Page
-**Edit**: `src/bowser/components/NewTab.tsx`
+### 8. Missing accessibility attributes
+- CommandPalette lacks `role="dialog"`, `aria-modal="true"`, `aria-label`
+- Web iframe (line 507) missing `title` attribute — a11y violation
+- Tab close buttons lack `aria-label` differentiation (all say "Close tab" — should include tab name)
+- History/Bookmarks search inputs lack `role="searchbox"`
 
-- Remove all bookmark folder management UI (create/rename/delete/move)
-- Keep only a compact "Favorites" row showing top ~8 bookmarks as small icon tiles (click to navigate)
-- Add a "See all bookmarks" link that navigates to `bowser://bookmarks`
-- Keep the prompt input, How It Works, I'm Feeling Lucky, grounding toggle, and install prompt
-- Result: NewTab is fast and lightweight
+## Plan
 
-### 4. Polish History Page
-**Edit**: `src/bowser/components/HistoryTab.tsx`
+### A. Fix tab state race conditions (`BowserApp.tsx`)
+- Change `updateTab` to accept a tab ID instead of index, resolving index internally
+- In `generate`, capture `tabId` once and use ID-based updates throughout
+- Combine `handleNewTab`'s `setTabs` + `setActiveTabIndex` into a single state derivation
+- Make `handleNewAiTab` create a tab with `tabKind: 'ai'` so it's actually distinct
 
-- Group entries by date (Today, Yesterday, This Week, Older)
-- Add a search/filter input at the top
-- Better empty state with icon, message, and subtle suggestion text
-- Add skeleton loading placeholder (3 shimmer rows) during initial render
+### B. Remove dead BrowserShell props (`BrowserShell.tsx`)
+- Remove `bookmarks`, `bookmarkFolders`, `onCreateBookmarkFolder`, `onRenameBookmarkFolder`, `onDeleteBookmarkFolder`, `onMoveBookmark`, `onNavigateToBookmark` from the interface and destructure
+- Remove corresponding props at the call site in `BowserApp.tsx`
 
-### 5. Polish Bookmarks Page
-**Edit**: `src/bowser/components/BookmarksTab.tsx`
+### C. Remove fake settings controls (`SettingsTab.tsx`)
+- Remove "Default Search Engine" and "Enable AI Search" sections entirely — they're dishonest
+- Keep Appearance, Keyboard Shortcuts, and Privacy (Clear Data) which are functional
 
-- This becomes the full bookmark manager (already has folders, but improve layout)
-- Add search/filter input
-- Better empty state with icon + "Bookmark pages with ⭐ in the address bar" helper text
-- Add count badges on folders
-- Improve visual hierarchy with section headers
+### D. Consolidate omnibox parsing (`AddressBar.tsx`, `utils/navigation.ts`)
+- Move URL validation into `parseOmniboxInput` — it should return an `error` field when input is invalid
+- AddressBar's `navigateWithQuery` becomes a thin wrapper that calls `parseOmniboxInput`, checks for errors, and delegates to `onNavigate`
+- Update `NavigationDecision` type to include optional `error: string`
 
-### 6. Polish Settings Page
-**Edit**: `src/bowser/components/SettingsTab.tsx`
+### E. Fix tab close state consistency (`BowserApp.tsx`)
+- Guard `activeTab` derivation with bounds check: `tabs[Math.min(activeTabIndex, tabs.length - 1)]`
+- In `handleCloseTab`, compute the new active index deterministically before setting state
 
-- Add keyboard shortcuts reference section showing all available shortcuts
-- Pass `onClearHistory` prop properly from BowserApp
-
-### 7. Tab Visual Hierarchy
-**Edit**: `src/bowser/components/BrowserShell.tsx`
-
-- Add tab-kind icon before tab title: 🌐 for web, ✨ for AI, ⚙️ for settings, 📚 for bookmarks, 🕐 for history, + for new-tab
-- Use Material Symbols: `public`, `auto_awesome`, `settings`, `bookmarks`, `history`, `add`
-- Slightly different accent color on active tab border based on kind (blue for AI, green for web, gray for system pages)
-
-### 8. Address Bar Focus Support
-**Edit**: `src/bowser/components/AddressBar.tsx`
-
-- Listen for custom `bowser:focus-omnibar` event and focus the input ref
-- No other changes needed
+### F. Add missing accessibility attributes
+- CommandPalette: add `role="dialog"`, `aria-modal="true"`, `aria-label="Command palette"`
+- Web iframe: add `title="Web content"`
+- Tab close buttons: include tab title in aria-label (e.g., `aria-label="Close History tab"`)
 
 ## Files touched
-| File | Action |
-|------|--------|
-| `src/bowser/components/CommandPalette.tsx` | Create |
-| `src/bowser/BowserApp.tsx` | Add shortcuts, command palette state, pass new props |
-| `src/bowser/components/NewTab.tsx` | Simplify, remove bookmark management |
-| `src/bowser/components/HistoryTab.tsx` | Add grouping, search, better empty state |
-| `src/bowser/components/BookmarksTab.tsx` | Add search, count badges, better empty state |
-| `src/bowser/components/SettingsTab.tsx` | Add shortcuts reference section |
-| `src/bowser/components/BrowserShell.tsx` | Add tab-kind icons |
-| `src/bowser/components/AddressBar.tsx` | Add focus event listener |
-| `src/index.css` | Command palette styles |
+| File | Changes |
+|------|---------|
+| `BowserApp.tsx` | ID-based updateTab, fix new-tab race, remove dead BrowserShell props, fix close edge case |
+| `BrowserShell.tsx` | Remove 7 unused bookmark props from interface |
+| `SettingsTab.tsx` | Remove fake Search Engine and AI Search controls |
+| `AddressBar.tsx` | Delegate parsing to navigation utility |
+| `utils/navigation.ts` | Add validation/error support to `parseOmniboxInput` |
+| `CommandPalette.tsx` | Add dialog ARIA attributes |
+
+No new dependencies. No behavioral changes to working features. Build-safe.
 
