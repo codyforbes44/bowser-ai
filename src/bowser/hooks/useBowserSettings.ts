@@ -38,3 +38,11 @@ export function getSearchEngineSetting(): SearchEngine {
 export function setSearchEngineSetting(engine: SearchEngine): void {
   setStorageItem('search-engine', engine);
 }
+
+export function getAutoFullscreen(): boolean {
+  return getStorageItem<boolean>('auto-fullscreen', true);
+}
+
+export function setAutoFullscreen(enabled: boolean): void {
+  setStorageItem('auto-fullscreen', enabled);
+}

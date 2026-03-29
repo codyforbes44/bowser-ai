@@ -562,21 +562,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
               <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
-            {menuOpen && (
+          {menuOpen && (
               <div className="dropdown-menu" role="menu">
-                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[13px]">Live data</span>
-                  <div
-                    className={`toggle-track ${isGrounded ? 'active' : ''}`}
-                    onClick={onToggleGrounding}
-                    role="switch"
-                    aria-checked={isGrounded}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleGrounding(); } }}
-                  >
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
+                {/* Intentionally empty — live data toggle is in the address bar globe button */}
               </div>
             )}
           </div>

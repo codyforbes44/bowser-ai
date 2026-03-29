@@ -690,6 +690,7 @@ body {
   .newtab-bookmark-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* ==========================================
    COMMAND PALETTE
    ========================================== */
 
