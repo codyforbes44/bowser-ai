@@ -151,8 +151,8 @@ export const NewTab: React.FC<NewTabProps> = ({
               <div className="toggle-thumb" />
             </div>
           </div>
+          <InstallPrompt />
         </div>
-
         {(bookmarks.length > 0 || bookmarkFolders.length > 0) && (
           <div className="mt-16 w-full max-w-3xl">
             <div className="flex items-center justify-between mb-6">
