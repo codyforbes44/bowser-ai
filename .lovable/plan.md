@@ -1,65 +1,77 @@
 
 
-# Move AI Calls to Backend (Lovable AI Gateway)
+# Fix Web Mode: Sites Refusing to Load in Iframe
 
 ## Problem
-All Gemini API calls happen directly from the browser using `VITE_GEMINI_API_KEY`. This key is exposed in client-side code and likely has domain restrictions that block it on the published URL (`bowser-ai.lovable.app`).
+When users search or navigate to Google, DuckDuckGo, Bing, and many other websites in "Web mode," the iframe shows a blank page or error. This is because these sites set HTTP headers (`X-Frame-Options: DENY` / `Content-Security-Policy: frame-ancestors 'none'`) that block embedding in iframes. This is a fundamental browser security restriction — no client-side workaround exists.
 
-## Solution
-Move all AI calls to Supabase Edge Functions that use the Lovable AI Gateway (`LOVABLE_API_KEY`, already available). The client will stream responses from the edge functions instead of calling Google directly.
+## Solution: Server-Side Proxy via Edge Function
 
-## Important Tradeoff: Google Search Grounding
-The current "Live data" toggle uses Google's `googleSearch` grounding tool — a Google-specific feature not available through the Lovable AI Gateway. Two options:
+Create a backend edge function that fetches the target URL server-side and returns the HTML content, which Bowser then renders in its sandboxed iframe (like it does for AI-generated pages). This sidesteps iframe restrictions entirely.
 
-- **Option A**: Drop the grounding feature (simplest). The "Live data" toggle would be removed or become a no-op.
-- **Option B**: Keep grounding by making a separate Google Search API call before generation, injecting results into the prompt as context. This requires a Google Custom Search API key (different from Gemini) and more complexity.
+## Changes
 
-**Recommendation**: Go with Option A for now — remove grounding. The generated pages are already rich without it, and this unblocks the published app immediately.
+### 1. New Edge Function: `supabase/functions/proxy-web/index.ts`
+- Accepts `{ url: string }` in the request body
+- Fetches the URL server-side using `fetch()`
+- Returns the raw HTML content
+- Rewrites relative URLs in the HTML to absolute URLs so assets (images, CSS) load correctly
+- Adds base tag pointing to the original domain
+- Strips problematic headers/scripts that would break sandboxed rendering
 
-## Edge Functions to Create
+### 2. `src/bowser/BowserApp.tsx`
+- Replace the direct `<iframe src={...}>` for web mode (lines 406-412) with a component that:
+  - Calls the `proxy-web` edge function to fetch page HTML
+  - Renders the result in a sandboxed iframe (similar to `Sandbox` component) or uses `srcdoc`
+  - Shows a loading spinner while fetching
+  - Shows an error state if the fetch fails
 
-### 1. `supabase/functions/generate-page/index.ts`
-- Accepts: `prompt`, `currentPageHtml`, `formState`, `isMobile`
-- Streams HTML generation via Lovable AI Gateway using the same system prompt
-- Returns SSE stream with HTML chunks and a final `__META__` event for token counts
-- Model: `google/gemini-3-flash-preview`
+### 3. New Component: `src/bowser/components/WebProxy.tsx`
+- Accepts `url` and `navigationId` props
+- On mount / URL change, calls the proxy edge function
+- Renders fetched HTML in a sandboxed iframe using `srcdoc`
+- Injects a `<base href="...">` tag so relative links resolve correctly
+- Intercepts link clicks and form submissions, routing them back through the proxy
 
-### 2. `supabase/functions/analyze-content/index.ts`
-- Accepts: `action`, `question`, `pageHtml` (for AI tabs) or `url`/`title` (for web tabs)
-- Streams text analysis responses
-- Handles all `AnalysisAction` types (summarize, key-points, simplify, ask, related, explain)
+### 4. `src/bowser/utils/navigation.ts`
+- When in default (new-tab) mode and user types a plain search query, route it through AI-generated search results instead of trying to embed a search engine page (since search engine results pages are particularly hostile to iframing)
+- Keep direct URL navigation going through the proxy for regular websites
 
-## Client-Side Changes
+## Technical Details
 
-### `src/bowser/services/geminiService.ts`
-- Remove `@google/genai` SDK usage entirely
-- Replace `streamPageGeneration` with a function that calls the `generate-page` edge function and parses the SSE stream
-- Replace `streamTextAnalysis` and `streamWebTabAnalysis` with functions calling the `analyze-content` edge function
-- Remove `countTokens` call (token counts will come from the gateway's `usage` field in the SSE stream)
+```text
+User types "cats" in omnibar
+       │
+       ▼
+parseOmniboxInput() decides: search query
+       │
+       ▼
+  Option A: Route to proxy-web edge function
+            which fetches DuckDuckGo results
+            and returns HTML for srcdoc rendering
+       │
+  Option B: Route to AI generate instead,
+            producing a search-results-like page
+            (simpler, more reliable)
+```
 
-### `src/bowser/BowserApp.tsx` / `src/bowser/components/AddressBar.tsx`
-- Remove the "Live data" / grounding toggle UI and state (or keep it as cosmetic — pending your preference)
-- Remove `isGrounded` prop threading
+### Proxy approach limitations
+- JavaScript-heavy SPAs (React/Angular sites) won't work — only static/server-rendered HTML
+- Some sites detect proxy patterns and block them
+- Authentication-gated content won't work
+- This is best-effort; some sites will still fail
 
-### `src/bowser/types.ts`
-- Keep `GroundingSource` and `searchEntryPointHtml` types for backward compatibility with existing history entries, but new pages won't populate them
+### Recommended hybrid approach
+- For **search queries**: Route through AI generation (already works well) — this avoids proxy complexity for the most common failure case
+- For **direct URL navigation**: Use the proxy edge function as a best-effort renderer
+- Show a "Open in new tab" fallback button when proxy rendering fails, using `window.open(url, '_blank')`
 
-## File Changes Summary
+## File Summary
 
 | File | Change |
 |---|---|
-| `supabase/functions/generate-page/index.ts` | **New** — streaming page generation edge function |
-| `supabase/functions/analyze-content/index.ts` | **New** — streaming analysis edge function |
-| `src/bowser/services/geminiService.ts` | Rewrite to call edge functions instead of Google SDK |
-| `src/bowser/BowserApp.tsx` | Remove grounding toggle state and props |
-| `src/bowser/components/AddressBar.tsx` | Remove grounding/globe UI |
-| `src/bowser/hooks/useAIGenerate.ts` | Remove `isGrounded` dependency |
-| `src/bowser/components/AiSidePanel.tsx` | No structural changes (still calls geminiService) |
-| `package.json` | Remove `@google/genai` dependency |
-
-## Technical Notes
-- Edge functions use `LOVABLE_API_KEY` (auto-provisioned, already available)
-- SSE parsing on client uses the standard `data: ` line-by-line pattern from the Lovable AI docs
-- The system prompt and all generation logic stays identical — only the transport layer changes
-- `VITE_GEMINI_API_KEY` can be removed from secrets after migration
+| `supabase/functions/proxy-web/index.ts` | **New** — server-side URL fetcher |
+| `src/bowser/components/WebProxy.tsx` | **New** — renders proxied HTML in sandboxed iframe |
+| `src/bowser/BowserApp.tsx` | Replace direct iframe with `WebProxy` component |
+| `src/bowser/utils/navigation.ts` | Route search queries to AI mode instead of web mode |
 
