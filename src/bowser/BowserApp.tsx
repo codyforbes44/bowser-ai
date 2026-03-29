@@ -209,12 +209,12 @@ const BowserApp: React.FC = () => {
     generate(actionPrompt, currentPage.html, activeTab.breadcrumb, false, formState);
   }, [generate, currentPage, activeTab.breadcrumb]);
 
-  const handleOmnibarNavigate = useCallback((type: 'create' | 'edit', prompt: string) => {
+  const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
     const tab = tabs[activeTabIndex];
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
     if (decision.error) {
-      // Error is now handled by AddressBar via parseOmniboxInput
+      // Error is handled by AddressBar via its own parseOmniboxInput call
       return;
     }
 
@@ -229,13 +229,17 @@ const BowserApp: React.FC = () => {
 
     if (decision.kind === 'ai') {
       updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
-      if (type === 'create') {
-        const fallback: Breadcrumb = { sitename: decision.query || prompt, page: 'Home' };
-        generate(decision.query || prompt, null, fallback, true);
+      // Determine create vs edit based on breadcrumb comparison
+      const parsed = parseBreadcrumb(prompt);
+      const isEdit = parsed.sitename === activeTab.breadcrumb.sitename && parsed.page && parsed.page !== activeTab.breadcrumb.page;
+      
+      if (isEdit && currentPage) {
+        const fallback: Breadcrumb = { sitename: activeTab.breadcrumb.sitename, page: parsed.page };
+        generate(parsed.page, currentPage.html, fallback, false);
       } else {
-        if (!currentPage) return;
-        const fallback: Breadcrumb = { sitename: activeTab.breadcrumb.sitename, page: decision.query || prompt };
-        generate(decision.query || prompt, currentPage.html, fallback, false);
+        const query = decision.query || prompt;
+        const fallback: Breadcrumb = { sitename: query, page: 'Home' };
+        generate(query, null, fallback, true);
       }
       addHistoryEntry({ url: decision.query || prompt, title: decision.query || prompt, tabKind: 'ai' });
       return;
