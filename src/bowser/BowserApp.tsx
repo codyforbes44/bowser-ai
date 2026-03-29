@@ -1,13 +1,11 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { BrowserShell } from './components/BrowserShell';
 import { Sandbox } from './components/Sandbox';
 import { NewTab } from './components/NewTab';
-import { HistoryTab } from './components/HistoryTab';
-import { BookmarksTab } from './components/BookmarksTab';
-import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { CommandPalette } from './components/CommandPalette';
 import { AiSidePanel } from './components/AiSidePanel';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
+import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { getStorageItem, setStorageItem } from './utils/storage';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
@@ -16,8 +14,12 @@ import { useHistory } from './store/history';
 import { useTabManager } from './hooks/useTabManager';
 import { useAIGenerate } from './hooks/useAIGenerate';
 import { useOmnibox } from './hooks/useOmnibox';
-import { getTabLimit, applyFontScale, getFontSize } from './hooks/useBowserSettings';
+import { getTabLimit, applyFontScale, getFontSize, getAutoFullscreen } from './hooks/useBowserSettings';
 import { useSwipeGesture } from './hooks/useSwipeGesture';
+
+const HistoryTab = lazy(() => import('./components/HistoryTab').then(m => ({ default: m.HistoryTab })));
+const BookmarksTab = lazy(() => import('./components/BookmarksTab').then(m => ({ default: m.BookmarksTab })));
+const SettingsTab = lazy(() => import('./components/SettingsTab').then(m => ({ default: m.SettingsTab })));
 
 const BowserApp: React.FC = () => {
   const [isGrounded, setIsGrounded] = useState(() => getStorageItem<boolean>('live-data', true));
@@ -46,6 +48,28 @@ const BowserApp: React.FC = () => {
   useEffect(() => {
     applyBowserTheme(getEffectiveTheme());
     applyFontScale(getFontSize());
+  }, []);
+
+  // Auto-fullscreen on first user interaction
+  useEffect(() => {
+    // Skip in iframes (Lovable preview) or if user disabled it
+    const isInIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+    if (isInIframe || !getAutoFullscreen()) return;
+
+    const trigger = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => { /* browser denied */ });
+      }
+      document.removeEventListener('click', trigger);
+      document.removeEventListener('keydown', trigger);
+    };
+
+    document.addEventListener('click', trigger, { once: true });
+    document.addEventListener('keydown', trigger, { once: true });
+    return () => {
+      document.removeEventListener('click', trigger);
+      document.removeEventListener('keydown', trigger);
+    };
   }, []);
 
   useEffect(() => {
@@ -351,38 +375,44 @@ const BowserApp: React.FC = () => {
             onOpenSettings={() => navigateToSystemPage('settings')}
           />
         ) : activeTab.tabKind === 'history' ? (
-          <HistoryTab
-            history={history}
-            onClearHistory={clearHistory}
-            onRemoveEntry={removeHistoryEntry}
-            onNavigate={(url: string, tabKind: TabKind) => {
-              if (tabKind === 'web') {
-                handleOmnibarNavigate('create', url);
-              } else {
-                updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
-                handleCreate(url);
-              }
-            }}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <HistoryTab
+              history={history}
+              onClearHistory={clearHistory}
+              onRemoveEntry={removeHistoryEntry}
+              onNavigate={(url: string, tabKind: TabKind) => {
+                if (tabKind === 'web') {
+                  handleOmnibarNavigate('create', url);
+                } else {
+                  updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
+                  handleCreate(url);
+                }
+              }}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'bookmarks' ? (
-          <BookmarksTab
-            bookmarks={bookmarks}
-            folders={bookmarkFolders}
-            onCreateFolder={createFolder}
-            onRenameFolder={renameFolder}
-            onDeleteFolder={deleteFolder}
-            onMoveBookmark={moveBookmark}
-            onRemoveBookmark={removeBookmark}
-            onNavigate={navigateToBookmarkUrl}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <BookmarksTab
+              bookmarks={bookmarks}
+              folders={bookmarkFolders}
+              onCreateFolder={createFolder}
+              onRenameFolder={renameFolder}
+              onDeleteFolder={deleteFolder}
+              onMoveBookmark={moveBookmark}
+              onRemoveBookmark={removeBookmark}
+              onNavigate={navigateToBookmarkUrl}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'settings' ? (
-          <SettingsTab
-            onClearHistory={clearHistory}
-            onClearBookmarks={() => {
-              bookmarks.forEach(b => removeBookmark(b.url));
-            }}
-            onShowOnboarding={() => setShowOnboarding(true)}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <SettingsTab
+              onClearHistory={clearHistory}
+              onClearBookmarks={() => {
+                bookmarks.forEach(b => removeBookmark(b.url));
+              }}
+              onShowOnboarding={() => setShowOnboarding(true)}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'web' ? (
           <iframe
             key={activeTab.navigationId}

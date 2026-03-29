@@ -1,7 +1,7 @@
 import React from 'react';
 import { getStorageItem, setStorageItem } from '../utils/storage';
 import { SearchEngine, SEARCH_ENGINES, getSearchEngine } from '../hooks/useOmnibox';
-import { FontSize, TabLimit, getFontSize, setFontSize, getTabLimit, setTabLimit, setSearchEngineSetting } from '../hooks/useBowserSettings';
+import { FontSize, TabLimit, getFontSize, setFontSize, getTabLimit, setTabLimit, setSearchEngineSetting, getAutoFullscreen, setAutoFullscreen } from '../hooks/useBowserSettings';
 
 export type BowserTheme = 'dark' | 'light' | 'system';
 
@@ -40,6 +40,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
   const [fontSize, setFontSizeState] = React.useState<FontSize>(getFontSize);
   const [tabLimit, setTabLimitState] = React.useState<TabLimit>(getTabLimit);
   const [searchEngine, setSearchEngineState] = React.useState<SearchEngine>(getSearchEngine);
+  const [autoFullscreen, setAutoFullscreenState] = React.useState(getAutoFullscreen);
   const [confirmClearHistory, setConfirmClearHistory] = React.useState(false);
   const [confirmClearBookmarks, setConfirmClearBookmarks] = React.useState(false);
   const [showShortcuts, setShowShortcuts] = React.useState(false);
@@ -48,6 +49,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
   const handleFontSizeChange = (s: FontSize) => { setFontSizeState(s); setFontSize(s); };
   const handleTabLimitChange = (l: TabLimit) => { setTabLimitState(l); setTabLimit(l); };
   const handleSearchEngineChange = (e: SearchEngine) => { setSearchEngineState(e); setSearchEngineSetting(e); };
+  const handleAutoFullscreenToggle = () => { const next = !autoFullscreen; setAutoFullscreenState(next); setAutoFullscreen(next); };
 
   return (
     <div className="w-full h-full overflow-y-auto" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
@@ -65,6 +67,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
             </SettingsRow>
             <SettingsRow label="Font size" description="Adjust text size across the interface.">
               <SegmentedButtons options={['small', 'medium', 'large']} value={fontSize} onChange={v => handleFontSizeChange(v as FontSize)} />
+            </SettingsRow>
+            <SettingsRow label="Open in fullscreen" description="Enter fullscreen on first interaction.">
+              <div
+                className={`toggle-track ${autoFullscreen ? 'active' : ''}`}
+                onClick={handleAutoFullscreenToggle}
+                role="switch"
+                aria-checked={autoFullscreen}
+                tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAutoFullscreenToggle(); } }}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="toggle-thumb" />
+              </div>
             </SettingsRow>
           </SettingsSection>
 
