@@ -322,6 +322,14 @@ const BowserApp: React.FC = () => {
         viewportRef={viewportRef}
         webHistoryPosition={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistoryIndex + 1 : undefined}
         webHistoryTotal={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistory.length : undefined}
+        webHistoryUrls={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistory : undefined}
+        onWebHistoryNavigate={activeTab.tabKind === 'web' ? (index: number) => {
+          updateTabById(activeTab.id, tab => {
+            const url = tab.webHistory[index];
+            if (!url) return tab;
+            return { ...tab, webHistoryIndex: index, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
+          });
+        } : undefined}
       >
         {isNewTab ? (
           <NewTab

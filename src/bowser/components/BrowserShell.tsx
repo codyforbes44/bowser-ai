@@ -98,6 +98,8 @@ interface BrowserShellProps {
   viewportRef?: React.RefObject<HTMLDivElement | null>;
   webHistoryPosition?: number;
   webHistoryTotal?: number;
+  webHistoryUrls?: string[];
+  onWebHistoryNavigate?: (index: number) => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
@@ -137,6 +139,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   viewportRef,
   webHistoryPosition,
   webHistoryTotal,
+  webHistoryUrls,
+  onWebHistoryNavigate,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -443,6 +447,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           canBookmark={canBookmark}
           webHistoryPosition={webHistoryPosition}
           webHistoryTotal={webHistoryTotal}
+          webHistoryUrls={webHistoryUrls}
+          onWebHistoryNavigate={onWebHistoryNavigate}
         />
       )}
 
@@ -514,6 +520,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             isMobile={true}
             webHistoryPosition={webHistoryPosition}
             webHistoryTotal={webHistoryTotal}
+            webHistoryUrls={webHistoryUrls}
+            onWebHistoryNavigate={onWebHistoryNavigate}
             onToggleSidePanel={onToggleSidePanel}
           />
           {mobileTabBar}
