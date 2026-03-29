@@ -167,7 +167,6 @@ const FirstRunLanding: React.FC<{
     <div className="mt-10 w-full max-w-sm space-y-3">
       <FeatureRow icon="auto_awesome" title="Create mode" desc="Generate any webpage instantly with AI" />
       <FeatureRow icon="public" title="Web mode" desc="Browse the real web with built-in search" />
-      <FeatureRow icon="language" title="Live data" desc="Ground AI responses with real-time information" />
     </div>
 
     {/* Install CTA */}
