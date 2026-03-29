@@ -61,7 +61,7 @@ export const NewTab: React.FC<NewTabProps> = ({
 
   return (
     <div className="newtab-page overflow-y-auto">
-      <div className="newtab-content min-h-full py-16">
+      <div className="newtab-content min-h-full py-8 md:py-16 pb-20 md:pb-16">
         {/* Wordmark */}
         <div className="flex flex-col items-center gap-1 mb-4">
           <h1
@@ -72,7 +72,7 @@ export const NewTab: React.FC<NewTabProps> = ({
           </h1>
           {isFirstRun && (
             <p className="text-[12px] mt-1" style={{ color: 'var(--bw-text-tertiary)' }}>
-              Search the web or ask anything.
+              Search the web or create anything.
             </p>
           )}
         </div>
@@ -85,8 +85,8 @@ export const NewTab: React.FC<NewTabProps> = ({
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               className="newtab-input"
-              placeholder={isBrowserMode ? 'Search or go to a URL' : 'Ask anything…'}
-              aria-label="Search or ask anything"
+              placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
+              aria-label="Search or create anything"
               autoFocus
             />
             <button type="submit" className="newtab-submit" aria-label="Go">
@@ -100,32 +100,23 @@ export const NewTab: React.FC<NewTabProps> = ({
           {onToggleBrowserMode && (
             <button
               onClick={onToggleBrowserMode}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors"
-              style={{
-                borderRadius: 'var(--bw-radius-sm)',
-                border: '1px solid var(--bw-border)',
-                color: 'var(--bw-text-tertiary)',
-                background: 'transparent',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              title={isBrowserMode ? 'Switch to AI mode' : 'Switch to Web mode'}
+              className="bw-chip bw-hover-bg"
+              title={isBrowserMode ? 'Switch to Create mode' : 'Switch to Web mode'}
             >
               <span className="material-symbols-outlined icon-sm" aria-hidden="true">
                 {isBrowserMode ? 'public' : 'auto_awesome'}
               </span>
-              {isBrowserMode ? 'Web' : 'AI'}
+              {isBrowserMode ? 'Web' : 'Create'}
             </button>
           )}
 
           <button
             onClick={onToggleGrounding}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors"
+            className="bw-chip"
             style={{
-              borderRadius: 'var(--bw-radius-sm)',
-              border: `1px solid ${isGrounded ? 'var(--bw-accent)' : 'var(--bw-border)'}`,
-              color: isGrounded ? 'var(--bw-accent)' : 'var(--bw-text-tertiary)',
-              background: isGrounded ? 'var(--bw-accent-subtle)' : 'transparent',
+              borderColor: isGrounded ? 'var(--bw-accent)' : undefined,
+              color: isGrounded ? 'var(--bw-accent)' : undefined,
+              background: isGrounded ? 'var(--bw-accent-subtle)' : undefined,
             }}
             title={isGrounded ? 'Live data enabled' : 'Enable live data'}
           >
@@ -152,7 +143,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             {onToggleBrowserMode && (
               <QuickChip
                 icon="auto_awesome"
-                label="Try AI mode"
+                label="Try Create mode"
                 onClick={() => {
                   if (isBrowserMode) onToggleBrowserMode();
                 }}
@@ -178,24 +169,20 @@ export const NewTab: React.FC<NewTabProps> = ({
               {bookmarks.length > 8 && (
                 <button
                   onClick={onOpenBookmarks}
-                  className="text-[11px] font-medium"
+                  className="text-[11px] font-medium bw-hover-text"
                   style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-secondary)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
                 >
                   View all
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="newtab-bookmark-grid grid grid-cols-4 gap-2">
               {topBookmarks.map(bm => (
                 <button
                   key={bm.id}
                   onClick={() => onNavigateToBookmark(bm.url, bm.tabKind)}
-                  className="flex flex-col items-center gap-1.5 p-2.5 rounded-md transition-colors"
-                  style={{ background: 'transparent' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="flex flex-col items-center gap-1.5 p-2.5 min-h-[44px] rounded-md bw-hover-bg"
+                  style={{ background: 'transparent', transition: 'background 0.12s ease' }}
                   title={bm.title}
                 >
                   <span
@@ -214,7 +201,7 @@ export const NewTab: React.FC<NewTabProps> = ({
           </div>
         )}
 
-        {/* Recent AI prompts */}
+        {/* Recent prompts */}
         {recentPrompts.length > 0 && (
           <div className="mt-8 w-full max-w-md">
             <h2 className="text-[11px] font-medium uppercase tracking-widest mb-2" style={{ color: 'var(--bw-text-quaternary)' }}>
@@ -225,10 +212,8 @@ export const NewTab: React.FC<NewTabProps> = ({
                 <button
                   key={i}
                   onClick={() => onCreatePage(p)}
-                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors group"
-                  style={{ background: 'transparent' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] rounded-md bw-hover-bg"
+                  style={{ background: 'transparent', transition: 'background 0.12s ease' }}
                 >
                   <span className="material-symbols-outlined icon-sm flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">auto_awesome</span>
                   <span className="text-[12px] truncate flex-1" style={{ color: 'var(--bw-text-secondary)' }}>{p}</span>
@@ -249,10 +234,8 @@ export const NewTab: React.FC<NewTabProps> = ({
                 <button
                   key={entry.id}
                   onClick={() => onNavigateToBookmark(entry.url, entry.tabKind)}
-                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors"
-                  style={{ background: 'transparent' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] rounded-md bw-hover-bg"
+                  style={{ background: 'transparent', transition: 'background 0.12s ease' }}
                 >
                   <span className="material-symbols-outlined icon-sm flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
                     {entry.tabKind === 'web' ? 'public' : 'auto_awesome'}
@@ -269,10 +252,8 @@ export const NewTab: React.FC<NewTabProps> = ({
         {isFirstRun && onShowOnboarding && (
           <button
             onClick={onShowOnboarding}
-            className="mt-6 text-[12px] font-medium"
+            className="mt-6 text-[12px] font-medium bw-hover-accent"
             style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-accent)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
           >
             Learn how Bowser works
           </button>
@@ -285,15 +266,8 @@ export const NewTab: React.FC<NewTabProps> = ({
 const QuickChip: React.FC<{ icon: string; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
   <button
     onClick={onClick}
-    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors"
-    style={{
-      borderRadius: 'var(--bw-radius-sm)',
-      border: '1px solid var(--bw-border)',
-      color: 'var(--bw-text-tertiary)',
-      background: 'transparent',
-    }}
-    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    className="bw-chip bw-hover-bg min-h-[44px]"
+    style={{ touchAction: 'manipulation' }}
   >
     <span className="material-symbols-outlined icon-sm" aria-hidden="true">{icon}</span>
     {label}
