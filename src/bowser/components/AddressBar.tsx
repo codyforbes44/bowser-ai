@@ -16,8 +16,6 @@ interface AddressBarProps {
   onHome: () => void;
   canGoBack: boolean;
   canGoForward: boolean;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   isBrowserMode: boolean;
   onToggleBrowserMode: () => void;
   isBookmarked: boolean;
@@ -43,8 +41,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onHome,
   canGoBack,
   canGoForward,
-  isGrounded,
-  onToggleGrounding,
   isBrowserMode,
   onToggleBrowserMode,
   isBookmarked,
