@@ -152,6 +152,7 @@ const BowserApp: React.FC = () => {
       ...tab, tabKind: 'new-tab', currentIndex: -1, loading: false, loadingMessage: '',
       generatedContent: '', breadcrumb: { sitename: '', page: '' }, tokenCount: null,
       groundingSources: [], searchEntryPointHtml: '', browserUrl: undefined,
+      webHistory: [], webHistoryIndex: -1,
     }));
   }, [activeTab, updateTabById, abortControllersRef]);
 
@@ -190,11 +191,15 @@ const BowserApp: React.FC = () => {
   const navigateToBookmarkUrl = useCallback((url: string, tabKind: TabKind) => {
     if (!activeTab) return;
     if (tabKind === 'web') {
-      updateTabById(activeTab.id, tab => ({
-        ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
-        loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
-        navigationId: tab.navigationId + 1
-      }));
+      updateTabById(activeTab.id, tab => {
+        const newWebHistory = [...tab.webHistory.slice(0, tab.webHistoryIndex + 1), url];
+        return {
+          ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
+          loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
+          navigationId: tab.navigationId + 1,
+          webHistory: newWebHistory, webHistoryIndex: newWebHistory.length - 1,
+        };
+      });
     } else {
       updateTabById(activeTab.id, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
       const fallback: Breadcrumb = { sitename: url, page: 'Home' };
