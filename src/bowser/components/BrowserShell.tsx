@@ -441,6 +441,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           isBookmarked={isBookmarked}
           onToggleBookmark={onToggleBookmark}
           canBookmark={canBookmark}
+          webHistoryPosition={webHistoryPosition}
+          webHistoryTotal={webHistoryTotal}
         />
       )}
 
@@ -510,6 +512,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             onToggleBookmark={onToggleBookmark}
             canBookmark={canBookmark}
             isMobile={true}
+            webHistoryPosition={webHistoryPosition}
+            webHistoryTotal={webHistoryTotal}
             onToggleSidePanel={onToggleSidePanel}
           />
           {mobileTabBar}
