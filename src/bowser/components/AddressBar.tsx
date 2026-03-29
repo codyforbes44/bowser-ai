@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Breadcrumb } from '../types';
-import { parseBreadcrumb, breadcrumbToDisplay } from '../utils/urlHelpers';
+import { breadcrumbToDisplay } from '../utils/urlHelpers';
 import { getStorageItem, setStorageItem } from '../utils/storage';
 import { parseOmniboxInput } from '../utils/navigation';
 
