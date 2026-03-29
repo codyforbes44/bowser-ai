@@ -260,6 +260,19 @@ const ReturningUserView: React.FC<{
       onToggleBrowserMode={onToggleBrowserMode}
     />
 
+    <p className="text-[12px] mt-2" style={{ color: 'var(--bw-text-quaternary)' }}>
+      Or,{' '}
+      <button
+        onClick={() => onWebNavigate('https://google.com')}
+        className="underline transition-colors"
+        style={{ color: 'var(--bw-text-tertiary)' }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-tertiary)')}
+      >
+        continue to Google Search.
+      </button>
+    </p>
+
     <InstallPrompt />
 
     {/* Pinned bookmarks */}
