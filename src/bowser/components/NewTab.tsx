@@ -159,6 +159,19 @@ const FirstRunLanding: React.FC<{
       onToggleBrowserMode={onToggleBrowserMode}
     />
 
+    <p className="text-[12px] mt-2" style={{ color: 'var(--bw-text-quaternary)' }}>
+      Or,{' '}
+      <button
+        onClick={() => onWebNavigate('https://google.com')}
+        className="underline transition-colors"
+        style={{ color: 'var(--bw-text-tertiary)' }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-tertiary)')}
+      >
+        continue to Google Search.
+      </button>
+    </p>
+
     {/* Feature highlights */}
     <div className="mt-10 w-full max-w-sm space-y-3">
       <FeatureRow icon="auto_awesome" title="Create mode" desc="Generate any webpage instantly with AI" />
