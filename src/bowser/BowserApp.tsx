@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { BrowserShell } from './components/BrowserShell';
 import { Sandbox } from './components/Sandbox';
 import { NewTab } from './components/NewTab';
@@ -16,10 +16,9 @@ import { parseOmniboxInput } from './utils/navigation';
 import { saveWorkspace, restoreWorkspace, addRecentlyClosed, popRecentlyClosed, addRecentPrompt } from './store/session';
 
 const BowserApp: React.FC = () => {
-  // Restore workspace from session, or default to a single web tab
   const [tabs, setTabs] = useState<Tab[]>(() => {
     const restored = restoreWorkspace();
-    return restored && restored.length > 0 ? restored : [createTab('web')];
+    return restored && restored.length > 0 ? restored : [createTab('new-tab')];
   });
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isGrounded, setIsGrounded] = useState(false);
@@ -31,15 +30,23 @@ const BowserApp: React.FC = () => {
 
   useEffect(() => { applyBowserTheme(getEffectiveTheme()); }, []);
 
-  // Persist workspace when tabs change
-  useEffect(() => { saveWorkspace(tabs); }, [tabs]);
+  // Persist workspace — debounced in saveWorkspace, skip saves during streaming
+  const prevTabsRef = useRef<string>('');
+  useEffect(() => {
+    // Only save when tab structure changes (kind, url, title, pinned), not during streaming content updates
+    const structural = tabs.map(t => `${t.id}|${t.tabKind}|${t.browserUrl || ''}|${t.customTitle || ''}|${t.pinned || ''}|${t.breadcrumb.sitename}|${t.breadcrumb.page}`).join(';;');
+    if (structural !== prevTabsRef.current) {
+      prevTabsRef.current = structural;
+      saveWorkspace(tabs);
+    }
+  }, [tabs]);
 
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   // Guard activeTab derivation against stale index
-  const safeIndex = Math.min(activeTabIndex, tabs.length - 1);
+  const safeIndex = Math.min(activeTabIndex, Math.max(tabs.length - 1, 0));
   const activeTab = tabs[safeIndex];
-  const currentPage = activeTab.currentIndex >= 0 ? activeTab.history[activeTab.currentIndex] : null;
+  const currentPage = activeTab?.currentIndex >= 0 ? activeTab.history[activeTab.currentIndex] : null;
 
   // ID-based tab updater — resolves index at update time, not call time
   const updateTabById = useCallback((tabId: string, updater: (tab: Tab) => Tab) => {
@@ -54,7 +61,7 @@ const BowserApp: React.FC = () => {
     formState?: FormFieldState[],
     targetTabId?: string,
   ) => {
-    const tabId = targetTabId || tabs[activeTabIndex]?.id;
+    const tabId = targetTabId || activeTab?.id;
     if (!tabId) return;
 
     const existingController = abortControllersRef.current.get(tabId);
@@ -65,7 +72,7 @@ const BowserApp: React.FC = () => {
     updateTabById(tabId, tab => ({
       ...tab,
       loading: true,
-      loadingMessage: 'Streaming website from Gemini 3.1 Flash',
+      loadingMessage: 'Generating page…',
       generatedContent: '',
       tokenCount: null,
       groundingSources: [],
@@ -90,7 +97,7 @@ const BowserApp: React.FC = () => {
           try {
             const tokenData = JSON.parse(chunk.replace('__TOKEN__', ''));
             updateTabById(tabId, tab => ({ ...tab, tokenCount: tokenData }));
-          } catch { }
+          } catch { /* ignore parse errors */ }
           continue;
         }
 
@@ -107,7 +114,7 @@ const BowserApp: React.FC = () => {
               pageSearchEntryPointHtml = meta.searchEntryPointHtml;
               updateTabById(tabId, tab => ({ ...tab, searchEntryPointHtml: meta.searchEntryPointHtml }));
             }
-          } catch { }
+          } catch { /* ignore parse errors */ }
           continue;
         }
         fullHtml += chunk;
@@ -122,7 +129,6 @@ const BowserApp: React.FC = () => {
         updateTabById(tabId, tab => ({
           ...tab,
           generatedContent: currentFullHtml,
-          loadingMessage: 'Streaming website from Gemini 3.1 Flash',
           ...(extractedBreadcrumb ? { breadcrumb: extractedBreadcrumb } : {}),
         }));
       }
@@ -163,7 +169,7 @@ const BowserApp: React.FC = () => {
       updateTabById(tabId, tab => ({
         ...tab,
         breadcrumb: fallbackBreadcrumb,
-        generatedContent: `<div class="p-10"><h1>Error</h1><p>Failed to generate page</p></div>`,
+        generatedContent: `<html><head><title>Error</title><meta name="color-scheme" content="dark"></head><body style="font-family: system-ui, sans-serif; padding: 40px; background: #111; color: #e8eaed;"><h1 style="font-size: 18px; margin-bottom: 8px;">Something went wrong</h1><p style="color: #999; font-size: 14px;">The page couldn't be generated. Please try again.</p></body></html>`,
       }));
     } finally {
       if (abortControllersRef.current.get(tabId) === controller) {
@@ -171,9 +177,10 @@ const BowserApp: React.FC = () => {
         abortControllersRef.current.delete(tabId);
       }
     }
-  }, [isGrounded, activeTabIndex, tabs, updateTabById]);
+  }, [isGrounded, activeTab?.id, updateTabById]);
 
   const handleStop = useCallback(() => {
+    if (!activeTab) return;
     const tabId = activeTab.id;
     const controller = abortControllersRef.current.get(tabId);
     if (controller) { controller.abort(); abortControllersRef.current.delete(tabId); }
@@ -187,6 +194,7 @@ const BowserApp: React.FC = () => {
   }, [generate]);
 
   const handleLinkClick = useCallback((href: string, linkText: string, formState?: FormFieldState[]) => {
+    if (!activeTab) return;
     const prompt = `User clicked "${linkText}" (href: ${href})`;
     const isExternal = /^https?:\/\//i.test(href) || /^[a-z0-9-]+\.[a-z]{2,}/i.test(href);
 
@@ -206,21 +214,20 @@ const BowserApp: React.FC = () => {
         generate(prompt, null, fallback, true, formState);
       }
     }
-  }, [generate, currentPage, activeTab.breadcrumb]);
+  }, [generate, currentPage, activeTab]);
 
   const handleAction = useCallback((intent: string, payload?: string, formState?: FormFieldState[]) => {
-    if (!currentPage) return;
+    if (!currentPage || !activeTab) return;
     const actionPrompt = payload ? `${intent}: ${payload}` : intent;
     generate(actionPrompt, currentPage.html, activeTab.breadcrumb, false, formState);
-  }, [generate, currentPage, activeTab.breadcrumb]);
+  }, [generate, currentPage, activeTab]);
 
   const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
-    const tab = tabs[activeTabIndex];
+    if (!activeTab) return;
+    const tab = activeTab;
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
-    if (decision.error) {
-      return;
-    }
+    if (decision.error) return;
 
     if (decision.kind === 'web') {
       updateTabById(tab.id, t => ({
@@ -249,40 +256,44 @@ const BowserApp: React.FC = () => {
       return;
     }
 
+    // System pages (history, bookmarks, settings, new-tab)
     updateTabById(tab.id, t => ({
       ...t, tabKind: decision.kind, browserUrl: undefined,
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: decision.kind, page: '' },
     }));
-  }, [generate, currentPage, activeTab.breadcrumb, tabs, activeTabIndex, updateTabById, addHistoryEntry]);
+  }, [generate, currentPage, activeTab, updateTabById, addHistoryEntry]);
 
   const handleBack = useCallback(() => {
-    if (activeTab.tabKind === 'web') return;
+    if (!activeTab || activeTab.tabKind === 'web') return;
     if (activeTab.currentIndex > 0) {
+      const prevPage = activeTab.history[activeTab.currentIndex - 1];
       updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex - 1;
         const page = tab.history[newIndex];
+        if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      const page = activeTab.history[activeTab.currentIndex - 1];
-      if (page) setIsGrounded(page.isGrounded);
+      if (prevPage) setIsGrounded(prevPage.isGrounded);
     }
   }, [activeTab, updateTabById]);
 
   const handleForward = useCallback(() => {
-    if (activeTab.tabKind === 'web') return;
+    if (!activeTab || activeTab.tabKind === 'web') return;
     if (activeTab.currentIndex < activeTab.history.length - 1) {
+      const nextPage = activeTab.history[activeTab.currentIndex + 1];
       updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex + 1;
         const page = tab.history[newIndex];
+        if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      const page = activeTab.history[activeTab.currentIndex + 1];
-      if (page) setIsGrounded(page.isGrounded);
+      if (nextPage) setIsGrounded(nextPage.isGrounded);
     }
   }, [activeTab, updateTabById]);
 
   const handleRefresh = useCallback(() => {
+    if (!activeTab) return;
     if (activeTab.tabKind === 'web') {
       updateTabById(activeTab.id, t => ({ ...t, navigationId: t.navigationId + 1 }));
       return;
@@ -293,6 +304,7 @@ const BowserApp: React.FC = () => {
   }, [currentPage, generate, activeTab, updateTabById]);
 
   const handleHome = useCallback(() => {
+    if (!activeTab) return;
     const tabId = activeTab.id;
     const controller = abortControllersRef.current.get(tabId);
     if (controller) { controller.abort(); abortControllersRef.current.delete(tabId); }
@@ -321,26 +333,21 @@ const BowserApp: React.FC = () => {
     });
   }, []);
 
-  const handleNewAiTab = useCallback(() => {
-    const newTab = createTab('new-tab');
-    setTabs(prev => {
-      const next = [...prev, newTab];
-      queueMicrotask(() => setActiveTabIndex(next.length - 1));
-      return next;
-    });
-  }, []);
-
-  // Atomic close with recently-closed tracking
+  // Close tab — block closing pinned tabs via keyboard
   const handleCloseTab = useCallback((index: number) => {
     const closingTab = tabs[index];
+    if (!closingTab) return;
+
+    // Don't close pinned tabs
+    if (closingTab.pinned) return;
+
     const controller = abortControllersRef.current.get(closingTab.id);
     if (controller) { controller.abort(); abortControllersRef.current.delete(closingTab.id); }
 
-    // Track closed tab for reopen
     addRecentlyClosed(closingTab);
 
     if (tabs.length === 1) {
-      const newTab = createTab('web');
+      const newTab = createTab('new-tab');
       setTabs([newTab]);
       setActiveTabIndex(0);
     } else {
@@ -358,7 +365,6 @@ const BowserApp: React.FC = () => {
     }
   }, [tabs, activeTabIndex]);
 
-  // Reopen most recently closed tab
   const handleReopenClosedTab = useCallback(() => {
     const closed = popRecentlyClosed();
     if (!closed) return;
@@ -379,7 +385,6 @@ const BowserApp: React.FC = () => {
         queueMicrotask(() => setActiveTabIndex(next.length - 1));
         return next;
       });
-      // Regenerate the AI page
       setTimeout(() => {
         updateTabById(newTab.id, t => ({ ...t, tabKind: 'ai' }));
         const prompt = closed.lastPrompt!;
@@ -387,7 +392,6 @@ const BowserApp: React.FC = () => {
         generate(prompt, null, fallback, true, undefined, newTab.id);
       }, 100);
     } else {
-      // System page or unknown — open as system page or new tab
       const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'new-tab';
       const newTab = createTab(kind);
       newTab.breadcrumb = { sitename: kind, page: '' };
@@ -399,12 +403,10 @@ const BowserApp: React.FC = () => {
     }
   }, [generate, updateTabById]);
 
-  // Tab rename
   const handleRenameTab = useCallback((tabId: string, newTitle: string) => {
     updateTabById(tabId, tab => ({ ...tab, customTitle: newTitle }));
   }, [updateTabById]);
 
-  // Tab pin toggle
   const handlePinTab = useCallback((tabId: string) => {
     updateTabById(tabId, tab => ({ ...tab, pinned: !tab.pinned }));
   }, [updateTabById]);
@@ -414,6 +416,7 @@ const BowserApp: React.FC = () => {
   }, []);
 
   const handleToggleBrowserMode = useCallback(() => {
+    if (!activeTab) return;
     updateTabById(activeTab.id, tab => {
       const newKind = tab.tabKind === 'web' ? 'ai' : 'web';
       return {
@@ -426,25 +429,26 @@ const BowserApp: React.FC = () => {
   }, [activeTab, updateTabById]);
 
   const handleToggleBookmark = useCallback(() => {
-    const tab = tabs[activeTabIndex];
+    if (!activeTab) return;
     let url = '';
     let title = '';
 
-    if (tab.tabKind === 'web') {
-      url = tab.browserUrl || '';
-      title = tab.breadcrumb.sitename || url;
+    if (activeTab.tabKind === 'web') {
+      url = activeTab.browserUrl || '';
+      title = activeTab.breadcrumb.sitename || url;
     } else {
-      const page = tab.history[tab.currentIndex];
+      const page = activeTab.history[activeTab.currentIndex];
       if (!page) return;
       url = page.prompt;
       title = breadcrumbToDisplay(page.breadcrumb);
     }
 
     if (!url) return;
-    toggleBookmark(url, title, tab.tabKind);
-  }, [tabs, activeTabIndex, toggleBookmark]);
+    toggleBookmark(url, title, activeTab.tabKind);
+  }, [activeTab, toggleBookmark]);
 
   const navigateToSystemPage = useCallback((kind: TabKind) => {
+    if (!activeTab) return;
     updateTabById(activeTab.id, t => ({
       ...t, tabKind: kind, browserUrl: undefined,
       currentIndex: -1, history: [], loading: false, generatedContent: '',
@@ -453,6 +457,7 @@ const BowserApp: React.FC = () => {
   }, [activeTab, updateTabById]);
 
   const navigateToBookmarkUrl = useCallback((url: string, tabKind: TabKind) => {
+    if (!activeTab) return;
     if (tabKind === 'web') {
       updateTabById(activeTab.id, tab => ({
         ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
@@ -500,28 +505,30 @@ const BowserApp: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab]);
 
-  const isMac = /Mac/i.test(navigator.userAgent);
+  const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
   const modLabel = isMac ? '⌘' : 'Ctrl+';
 
-  const commandActions = [
+  // Memoize command actions to avoid re-creating every render
+  const commandActions = useMemo(() => [
     { id: 'new-tab', label: 'New Tab', icon: 'add', shortcut: `${modLabel}T`, section: 'Tabs', onExecute: handleNewTab },
     { id: 'reopen-tab', label: 'Reopen Closed Tab', icon: 'restore', shortcut: `${modLabel}Shift+T`, section: 'Tabs', onExecute: handleReopenClosedTab },
     { id: 'close-tab', label: 'Close Tab', icon: 'close', shortcut: `${modLabel}W`, section: 'Tabs', onExecute: () => { if (tabs.length > 1) handleCloseTab(activeTabIndex); } },
-    { id: 'pin-tab', label: activeTab.pinned ? 'Unpin Tab' : 'Pin Tab', icon: activeTab.pinned ? 'keep_off' : 'keep', section: 'Tabs', onExecute: () => handlePinTab(activeTab.id) },
+    { id: 'pin-tab', label: activeTab?.pinned ? 'Unpin Tab' : 'Pin Tab', icon: activeTab?.pinned ? 'keep_off' : 'keep', section: 'Tabs', onExecute: () => activeTab && handlePinTab(activeTab.id) },
     { id: 'focus-bar', label: 'Focus Address Bar', icon: 'search', shortcut: `${modLabel}L`, section: 'Navigation', onExecute: () => window.dispatchEvent(new Event('bowser:focus-omnibar')) },
-    { id: 'open-history', label: 'Open History', icon: 'history', section: 'Navigation', onExecute: () => navigateToSystemPage('history') },
-    { id: 'open-bookmarks', label: 'Open Bookmarks', icon: 'bookmarks', section: 'Navigation', onExecute: () => navigateToSystemPage('bookmarks') },
-    { id: 'open-settings', label: 'Open Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
+    { id: 'open-history', label: 'History', icon: 'history', section: 'Navigation', onExecute: () => navigateToSystemPage('history') },
+    { id: 'open-bookmarks', label: 'Bookmarks', icon: 'bookmarks', section: 'Navigation', onExecute: () => navigateToSystemPage('bookmarks') },
+    { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
-    { id: 'toggle-mode', label: 'Toggle AI/Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
+    { id: 'toggle-mode', label: 'Toggle AI / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
     { id: 'toggle-grounding', label: 'Toggle Real-time Browsing', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
-  ];
+  ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage]);
 
-  const isNewTab = activeTab.tabKind === 'new-tab' || (activeTab.currentIndex === -1 && !activeTab.loading && activeTab.tabKind !== 'web');
-  const displayContent = activeTab.loading ? activeTab.generatedContent : (currentPage?.html || '');
+  const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
+  const displayContent = activeTab?.loading ? activeTab.generatedContent : (currentPage?.html || '');
 
-  // Side panel content — only available for AI pages
-  const sidePanelHtml = activeTab.tabKind === 'ai' && currentPage ? currentPage.html : null;
+  const sidePanelHtml = activeTab?.tabKind === 'ai' && currentPage ? currentPage.html : null;
+
+  if (!activeTab) return null;
 
   return (
     <>
@@ -612,6 +619,7 @@ const BowserApp: React.FC = () => {
             className="w-full h-full border-none bg-white"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
             title="Web content"
+            onError={() => {/* iframe load errors are handled by the browser natively */}}
           />
         ) : (
           <Sandbox

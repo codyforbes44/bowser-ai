@@ -151,7 +151,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
 
   const getTabTitle = (tab: Tab) => {
     if (tab.customTitle) return tab.customTitle;
-    if (tab.loading) return 'Generating...';
+    if (tab.loading) return 'Generating…';
     if (tab.tabKind === 'web') {
       try {
         const url = new URL(tab.browserUrl || '');
@@ -215,8 +215,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
 
   return (
     <div className="browser-shell" ref={shellRef}>
-      <div className="tab-bar">
-        <div className="tab-list" role="tablist">
+      <div className="tab-bar" role="toolbar" aria-label="Tab bar">
+        <div className="tab-list" role="tablist" aria-label="Open tabs">
           {sortedTabs.map(({ tab, index }) => {
             const tabTitle = getTabTitle(tab);
             const isActive = index === activeTabIndex;
@@ -228,8 +228,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
                 className={`tab ${isActive ? `active-tab ${getTabAccentClass(tab)}` : ''} ${isPinned ? 'tab-pinned' : ''}`}
                 onClick={() => onSwitchTab(index)}
                 role="tab"
-                tabIndex={0}
+                tabIndex={isActive ? 0 : -1}
                 aria-selected={isActive}
+                aria-label={`${tabTitle}${isPinned ? ' (pinned)' : ''}${tab.loading ? ' (loading)' : ''}`}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -238,16 +239,15 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
                 }}
                 onContextMenu={e => {
                   e.preventDefault();
-                  // Simple context menu via pin toggle
                   if (onPinTab) onPinTab(tab.id);
                 }}
               >
                 {tab.loading ? (
                   <div className="tab-spinner" aria-hidden="true" />
                 ) : isPinned ? (
-                  <span className="material-symbols-outlined tab-kind-icon tab-pin-icon">keep</span>
+                  <span className="material-symbols-outlined tab-kind-icon tab-pin-icon" aria-hidden="true">keep</span>
                 ) : (
-                  <span className="material-symbols-outlined tab-kind-icon">{getTabIcon(tab)}</span>
+                  <span className="material-symbols-outlined tab-kind-icon" aria-hidden="true">{getTabIcon(tab)}</span>
                 )}
                 {!isPinned && (
                   renamingTabId === tab.id ? (
@@ -264,6 +264,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
                       className="tab-rename-input"
                       autoFocus
                       onClick={e => e.stopPropagation()}
+                      aria-label="Rename tab"
                     />
                   ) : (
                     <span
@@ -281,15 +282,15 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
                   <button
                     className="tab-close"
                     onClick={(e) => { e.stopPropagation(); onCloseTab(index); }}
-                    title={`Close ${tabTitle} tab`}
-                    aria-label={`Close ${tabTitle} tab`}
+                    title={`Close ${tabTitle}`}
+                    aria-label={`Close ${tabTitle}`}
                   >×</button>
                 )}
               </div>
             );
           })}
-          <button className="tab-new" onClick={onNewTab} title="New Tab" aria-label="New Tab">
-            <span>+</span>
+          <button className="tab-new" onClick={onNewTab} title="New Tab" aria-label="Open new tab">
+            <span aria-hidden="true">+</span>
           </button>
         </div>
 
@@ -310,23 +311,23 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           </div>
         )}
 
-        {/* Side panel toggle */}
         {onToggleSidePanel && (
           <button
             className={`tab-bar-btn ${sidePanelOpen ? 'active' : ''}`}
             onClick={onToggleSidePanel}
             title={sidePanelOpen ? 'Close side panel' : 'Open side panel'}
             aria-label={sidePanelOpen ? 'Close side panel' : 'Open side panel'}
+            aria-pressed={sidePanelOpen}
             style={sidePanelOpen ? { color: 'var(--bw-accent)' } : undefined}
           >
-            <span className="material-symbols-outlined">right_panel_open</span>
+            <span className="material-symbols-outlined" aria-hidden="true">right_panel_open</span>
           </button>
         )}
         <button className="tab-bar-btn" onClick={() => window.open(window.location.href, '_blank')} title="Open new window" aria-label="Open new window">
-          <span className="material-symbols-outlined">open_in_new</span>
+          <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
         </button>
         <button className="tab-bar-btn" onClick={handleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
-          <span className="material-symbols-outlined">{isFullscreen ? 'close_fullscreen' : 'fullscreen'}</span>
+          <span className="material-symbols-outlined" aria-hidden="true">{isFullscreen ? 'close_fullscreen' : 'fullscreen'}</span>
         </button>
       </div>
 
@@ -352,14 +353,14 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
       />
 
       <div className="browser-content-row">
-        <div className="browser-viewport" role="tabpanel">
+        <div className="browser-viewport" role="tabpanel" aria-label="Page content">
           {children}
         </div>
         {sidePanelOpen && sidePanel}
       </div>
 
       {(groundingSources.length > 0 || searchEntryPointHtml) && (
-        <div className="grounding-row">
+        <div className="grounding-row" aria-label="Sources">
           {groundingSources.length > 0 && (
             <div className="sources-container">
               <div className="sources-row">
@@ -378,7 +379,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
               srcDoc={`<script>document.addEventListener('click',function(e){var a=e.target.closest('a');if(a&&a.href){e.preventDefault();window.open(a.href,'_blank');}});<\/script>${searchEntryPointHtml}`}
               className="search-widget-iframe"
               sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-              title="Search Suggestions"
+              title="Search suggestions"
             />
           )}
         </div>

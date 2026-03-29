@@ -76,11 +76,10 @@ export interface Tab {
   customTitle?: string;
 }
 
-let nextTabId = 0;
-
+/** Stable unique ID using crypto.randomUUID — safe across page reloads and session restores */
 export function createTab(tabKind: TabKind = 'new-tab'): Tab {
   return {
-    id: `tab-${nextTabId++}`,
+    id: crypto.randomUUID(),
     tabKind,
     history: [],
     currentIndex: -1,
