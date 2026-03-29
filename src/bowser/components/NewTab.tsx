@@ -19,6 +19,7 @@ interface NewTabProps {
 
 export const NewTab: React.FC<NewTabProps> = ({
   onCreatePage,
+  onWebNavigate,
   isGrounded,
   onToggleGrounding,
   bookmarks,
@@ -26,11 +27,10 @@ export const NewTab: React.FC<NewTabProps> = ({
   onOpenBookmarks,
   history,
   onShowOnboarding,
-  isBrowserMode,
-  onToggleBrowserMode,
   onOpenSettings,
 }) => {
   const [prompt, setPrompt] = useState('');
+  const [localBrowserMode, setLocalBrowserMode] = useState(true);
   const { canInstall, triggerInstall } = useInstallPrompt();
 
   const recentPrompts = useMemo(() => getRecentPrompts().slice(0, 5), []);

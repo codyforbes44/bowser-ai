@@ -298,7 +298,7 @@ const BowserApp: React.FC = () => {
             }}
             onWebNavigate={(query) => {
               updateTabById(activeTab.id, t => ({ ...t, tabKind: 'web' }));
-              handleOmnibarNavigate('web', query);
+              handleOmnibarNavigate('create', query);
             }}
             isGrounded={isGrounded}
             onToggleGrounding={() => setIsGrounded(prev => !prev)}
