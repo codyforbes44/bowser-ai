@@ -380,7 +380,6 @@ interface OmniboxProps {
 
 const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, isGrounded, onToggleGrounding, onToggleBrowserMode }, ref) => (
   <div ref={ref}>
-  <>
     <form onSubmit={onSubmit} className="newtab-form">
       <div className="newtab-input-row">
         <input
@@ -426,8 +425,10 @@ const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPro
         Live data {isGrounded ? 'on' : 'off'}
       </button>
     </div>
-  </>
-);
+  </div>
+));
+
+Omnibox.displayName = 'Omnibox';
 
 /* ─── Small Components ─── */
 
