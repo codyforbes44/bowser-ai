@@ -33,27 +33,27 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
     return { kind: 'new-tab', url: 'bowser://newtab' };
   }
 
-  // In web mode, validate as URL
-  if (currentKind === 'web') {
-    return validateWebUrl(trimmed);
-  }
-
-  // Check if input looks like a URL regardless of mode
+  // Check if input looks like a URL
   const isUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i.test(trimmed);
-  
+
   if (isUrl) {
     const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
     return { kind: 'web', url };
+  }
+
+  // In web mode with non-URL input, treat as search via proxy
+  if (currentKind === 'web') {
+    const engine = getStorageItem<SearchEngine>('search-engine', 'duckduckgo');
+    const searchUrl = SEARCH_ENGINE_URLS[engine] || SEARCH_ENGINE_URLS.duckduckgo;
+    return { kind: 'web', url: `${searchUrl}${encodeURIComponent(trimmed)}`, query: trimmed };
   }
 
   if (currentKind === 'ai') {
     return { kind: 'ai', url: trimmed, query: trimmed };
   }
 
-  // Use configured search engine
-  const engine = getStorageItem<SearchEngine>('search-engine', 'duckduckgo');
-  const searchUrl = SEARCH_ENGINE_URLS[engine] || SEARCH_ENGINE_URLS.duckduckgo;
-  return { kind: 'web', url: `${searchUrl}${encodeURIComponent(trimmed)}`, query: trimmed };
+  // Default: route search queries through AI generation for better results
+  return { kind: 'ai', url: trimmed, query: trimmed };
 }
 
 function validateWebUrl(input: string): NavigationDecision {
