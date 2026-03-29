@@ -22,7 +22,6 @@ const BookmarksTab = lazy(() => import('./components/BookmarksTab').then(m => ({
 const SettingsTab = lazy(() => import('./components/SettingsTab').then(m => ({ default: m.SettingsTab })));
 
 const BowserApp: React.FC = () => {
-  const [isGrounded, setIsGrounded] = useState(() => getStorageItem<boolean>('live-data', true));
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
@@ -38,7 +37,7 @@ const BowserApp: React.FC = () => {
   } = useTabManager();
 
   const { generate, handleStop, handleCreate, abortControllersRef } = useAIGenerate({
-    isGrounded, activeTab, updateTabById,
+    activeTab, updateTabById,
   });
 
   const { handleOmnibarNavigate } = useOmnibox({
@@ -72,9 +71,6 @@ const BowserApp: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    setStorageItem('live-data', isGrounded);
-  }, [isGrounded]);
 
   // Swipe to switch tabs on mobile
   useSwipeGesture(viewportRef, {
@@ -132,7 +128,7 @@ const BowserApp: React.FC = () => {
         if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      if (prevPage) setIsGrounded(prevPage.isGrounded);
+      
     }
   }, [activeTab, updateTabById]);
 
@@ -156,7 +152,7 @@ const BowserApp: React.FC = () => {
         if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      if (nextPage) setIsGrounded(nextPage.isGrounded);
+      
     }
   }, [activeTab, updateTabById]);
 
@@ -286,7 +282,7 @@ const BowserApp: React.FC = () => {
     { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
     { id: 'toggle-mode', label: 'Toggle Create / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
-    { id: 'toggle-grounding', label: 'Toggle Live Data', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
+    
   ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate]);
 
   const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
@@ -320,8 +316,6 @@ const BowserApp: React.FC = () => {
         onNewTab={() => handleNewTab(getTabLimit() || undefined)}
         onCloseTab={handleCloseTab}
         onSwitchTab={handleSwitchTab}
-        isGrounded={isGrounded}
-        onToggleGrounding={() => setIsGrounded(prev => !prev)}
         isBrowserMode={activeTab.tabKind === 'web'}
         onToggleBrowserMode={handleToggleBrowserMode}
         tokenCount={activeTab.tokenCount}
@@ -365,8 +359,6 @@ const BowserApp: React.FC = () => {
               updateTabById(activeTab.id, t => ({ ...t, tabKind: 'web' }));
               handleOmnibarNavigate('create', query);
             }}
-            isGrounded={isGrounded}
-            onToggleGrounding={() => setIsGrounded(prev => !prev)}
             bookmarks={bookmarks}
             onNavigateToBookmark={navigateToBookmarkUrl}
             onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
