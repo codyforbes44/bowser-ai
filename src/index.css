@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.icon-sm { font-size: 14px !important; }
+.icon-md { font-size: 16px !important; }
+.icon-lg { font-size: 18px !important; }
+.icon-xl { font-size: 24px !important; }
+
 @layer base {
   :root {
     --background: 0 0% 100%;
