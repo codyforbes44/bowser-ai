@@ -74,6 +74,8 @@ export interface Tab {
   browserUrl?: string;
   pinned?: boolean;
   customTitle?: string;
+  webHistory: string[];
+  webHistoryIndex: number;
 }
 
 /** Stable unique ID using crypto.randomUUID — safe across page reloads and session restores */
@@ -92,5 +94,7 @@ export function createTab(tabKind: TabKind = 'new-tab'): Tab {
     searchEntryPointHtml: '',
     navigationId: 0,
     browserUrl: undefined,
+    webHistory: [],
+    webHistoryIndex: -1,
   };
 }

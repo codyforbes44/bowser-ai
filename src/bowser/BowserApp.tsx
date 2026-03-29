@@ -84,7 +84,17 @@ const BowserApp: React.FC = () => {
   }, [generate, currentPage, activeTab]);
 
   const handleBack = useCallback(() => {
-    if (!activeTab || activeTab.tabKind === 'web') return;
+    if (!activeTab) return;
+    if (activeTab.tabKind === 'web') {
+      if (activeTab.webHistoryIndex > 0) {
+        updateTabById(activeTab.id, tab => {
+          const newIndex = tab.webHistoryIndex - 1;
+          const url = tab.webHistory[newIndex];
+          return { ...tab, webHistoryIndex: newIndex, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
+        });
+      }
+      return;
+    }
     if (activeTab.currentIndex > 0) {
       const prevPage = activeTab.history[activeTab.currentIndex - 1];
       updateTabById(activeTab.id, tab => {
@@ -98,7 +108,17 @@ const BowserApp: React.FC = () => {
   }, [activeTab, updateTabById]);
 
   const handleForward = useCallback(() => {
-    if (!activeTab || activeTab.tabKind === 'web') return;
+    if (!activeTab) return;
+    if (activeTab.tabKind === 'web') {
+      if (activeTab.webHistoryIndex < activeTab.webHistory.length - 1) {
+        updateTabById(activeTab.id, tab => {
+          const newIndex = tab.webHistoryIndex + 1;
+          const url = tab.webHistory[newIndex];
+          return { ...tab, webHistoryIndex: newIndex, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
+        });
+      }
+      return;
+    }
     if (activeTab.currentIndex < activeTab.history.length - 1) {
       const nextPage = activeTab.history[activeTab.currentIndex + 1];
       updateTabById(activeTab.id, tab => {
@@ -132,6 +152,7 @@ const BowserApp: React.FC = () => {
       ...tab, tabKind: 'new-tab', currentIndex: -1, loading: false, loadingMessage: '',
       generatedContent: '', breadcrumb: { sitename: '', page: '' }, tokenCount: null,
       groundingSources: [], searchEntryPointHtml: '', browserUrl: undefined,
+      webHistory: [], webHistoryIndex: -1,
     }));
   }, [activeTab, updateTabById, abortControllersRef]);
 
@@ -144,6 +165,7 @@ const BowserApp: React.FC = () => {
         browserUrl: undefined,
         currentIndex: -1, history: [], loading: false, generatedContent: '',
         breadcrumb: { sitename: '', page: '' },
+        webHistory: [], webHistoryIndex: -1,
       };
     });
   }, [activeTab, updateTabById]);
@@ -170,11 +192,15 @@ const BowserApp: React.FC = () => {
   const navigateToBookmarkUrl = useCallback((url: string, tabKind: TabKind) => {
     if (!activeTab) return;
     if (tabKind === 'web') {
-      updateTabById(activeTab.id, tab => ({
-        ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
-        loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
-        navigationId: tab.navigationId + 1
-      }));
+      updateTabById(activeTab.id, tab => {
+        const newWebHistory = [...tab.webHistory.slice(0, tab.webHistoryIndex + 1), url];
+        return {
+          ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
+          loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
+          navigationId: tab.navigationId + 1,
+          webHistory: newWebHistory, webHistoryIndex: newWebHistory.length - 1,
+        };
+      });
     } else {
       updateTabById(activeTab.id, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
       const fallback: Breadcrumb = { sitename: url, page: 'Home' };
@@ -256,8 +282,8 @@ const BowserApp: React.FC = () => {
         onRefresh={handleRefresh}
         onStop={handleStop}
         onHome={handleHome}
-        canGoBack={activeTab.tabKind === 'web' ? false : activeTab.currentIndex > 0}
-        canGoForward={activeTab.tabKind === 'web' ? false : activeTab.currentIndex < activeTab.history.length - 1}
+        canGoBack={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex > 0 : activeTab.currentIndex > 0}
+        canGoForward={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex < activeTab.webHistory.length - 1 : activeTab.currentIndex < activeTab.history.length - 1}
         groundingSources={activeTab.groundingSources}
         searchEntryPointHtml={activeTab.searchEntryPointHtml}
         tabs={tabs}
