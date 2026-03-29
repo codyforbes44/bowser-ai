@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Bookmark, TabKind } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Bookmark, HistoryEntry, TabKind } from '../types';
 import { InstallPrompt } from './InstallPrompt';
+import { getRecentPrompts } from '../store/session';
 
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
@@ -9,6 +10,7 @@ interface NewTabProps {
   bookmarks: Bookmark[];
   onNavigateToBookmark: (url: string, tabKind: TabKind) => void;
   onOpenBookmarks: () => void;
+  history: HistoryEntry[];
 }
 
 const LUCKY_PROMPTS = [
@@ -33,8 +35,21 @@ export const NewTab: React.FC<NewTabProps> = ({
   bookmarks,
   onNavigateToBookmark,
   onOpenBookmarks,
+  history,
 }) => {
   const [prompt, setPrompt] = useState('');
+
+  const recentPrompts = useMemo(() => getRecentPrompts().slice(0, 4), []);
+
+  const recentActivity = useMemo(() => {
+    // Deduplicate by title, take most recent 6
+    const seen = new Set<string>();
+    return history.filter(e => {
+      if (seen.has(e.title)) return false;
+      seen.add(e.title);
+      return true;
+    }).slice(0, 6);
+  }, [history]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +81,14 @@ export const NewTab: React.FC<NewTabProps> = ({
   };
 
   const topBookmarks = bookmarks.slice(0, 8);
+
+  const formatTime = (ts: number) => {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="newtab-page overflow-y-auto">
@@ -133,9 +156,46 @@ export const NewTab: React.FC<NewTabProps> = ({
           <InstallPrompt />
         </div>
 
+        {/* Recent prompts */}
+        {recentPrompts.length > 0 && (
+          <div className="mt-10 w-full max-w-md">
+            <h2
+              className="text-[11px] font-medium uppercase tracking-widest mb-3"
+              style={{ color: 'var(--bw-text-quaternary)' }}
+            >
+              Recent prompts
+            </h2>
+            <div className="space-y-1">
+              {recentPrompts.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => onCreatePage(p)}
+                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors group"
+                  style={{ background: 'transparent' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span
+                    className="material-symbols-outlined text-sm flex-shrink-0"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
+                  >auto_awesome</span>
+                  <span
+                    className="text-[13px] truncate"
+                    style={{ color: 'var(--bw-text-secondary)' }}
+                  >{p}</span>
+                  <span
+                    className="material-symbols-outlined text-sm ml-auto opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
+                  >arrow_forward</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Favorites */}
         {topBookmarks.length > 0 && (
-          <div className="mt-12 w-full max-w-md">
+          <div className="mt-8 w-full max-w-md">
             <div className="flex items-center justify-between mb-3">
               <h2
                 className="text-[11px] font-medium uppercase tracking-widest"
@@ -187,6 +247,45 @@ export const NewTab: React.FC<NewTabProps> = ({
                   >
                     {bookmark.title}
                   </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent activity */}
+        {recentActivity.length > 0 && (
+          <div className="mt-8 w-full max-w-md">
+            <h2
+              className="text-[11px] font-medium uppercase tracking-widest mb-3"
+              style={{ color: 'var(--bw-text-quaternary)' }}
+            >
+              Recent activity
+            </h2>
+            <div className="space-y-px">
+              {recentActivity.map(entry => (
+                <button
+                  key={entry.id}
+                  onClick={() => onNavigateToBookmark(entry.url, entry.tabKind)}
+                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors"
+                  style={{ background: 'transparent' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span
+                    className="material-symbols-outlined text-sm flex-shrink-0"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
+                  >
+                    {entry.tabKind === 'web' ? 'public' : 'auto_awesome'}
+                  </span>
+                  <span
+                    className="text-[13px] truncate flex-1"
+                    style={{ color: 'var(--bw-text-secondary)' }}
+                  >{entry.title}</span>
+                  <span
+                    className="text-[11px] flex-shrink-0 tabular-nums"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
+                  >{formatTime(entry.timestamp)}</span>
                 </button>
               ))}
             </div>

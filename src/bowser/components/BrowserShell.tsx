@@ -89,6 +89,11 @@ interface BrowserShellProps {
   isBookmarked: boolean;
   onToggleBookmark: () => void;
   canBookmark: boolean;
+  onRenameTab?: (tabId: string, newTitle: string) => void;
+  onPinTab?: (tabId: string) => void;
+  sidePanelOpen?: boolean;
+  onToggleSidePanel?: () => void;
+  sidePanel?: React.ReactNode;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
@@ -119,9 +124,16 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   isBookmarked,
   onToggleBookmark,
   canBookmark,
+  onRenameTab,
+  onPinTab,
+  sidePanelOpen,
+  onToggleSidePanel,
+  sidePanel,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -138,6 +150,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   }, []);
 
   const getTabTitle = (tab: Tab) => {
+    if (tab.customTitle) return tab.customTitle;
     if (tab.loading) return 'Generating...';
     if (tab.tabKind === 'web') {
       try {
@@ -173,6 +186,28 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
     }
   };
 
+  const startRename = (tab: Tab) => {
+    setRenamingTabId(tab.id);
+    setRenameValue(tab.customTitle || getTabTitle(tab));
+  };
+
+  const confirmRename = () => {
+    if (renamingTabId && renameValue.trim() && onRenameTab) {
+      onRenameTab(renamingTabId, renameValue.trim());
+    }
+    setRenamingTabId(null);
+  };
+
+  const cancelRename = () => {
+    setRenamingTabId(null);
+  };
+
+  // Sort: pinned tabs first, then unpinned, preserving original indices
+  const orderedTabs = tabs.map((tab, index) => ({ tab, index }));
+  const pinnedTabs = orderedTabs.filter(x => x.tab.pinned);
+  const unpinnedTabs = orderedTabs.filter(x => !x.tab.pinned);
+  const sortedTabs = [...pinnedTabs, ...unpinnedTabs];
+
   const isOutputPhase = (tokenCount?.output ?? 0) > 0;
   const arrowIcon = isOutputPhase ? 'arrow_downward' : 'arrow_upward';
   const phaseClass = isOutputPhase ? 'token-out' : 'token-in';
@@ -182,35 +217,74 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
     <div className="browser-shell" ref={shellRef}>
       <div className="tab-bar">
         <div className="tab-list" role="tablist">
-          {tabs.map((tab, index) => {
+          {sortedTabs.map(({ tab, index }) => {
             const tabTitle = getTabTitle(tab);
+            const isActive = index === activeTabIndex;
+            const isPinned = !!tab.pinned;
+
             return (
               <div
                 key={tab.id}
-                className={`tab ${index === activeTabIndex ? `active-tab ${getTabAccentClass(tab)}` : ''}`}
+                className={`tab ${isActive ? `active-tab ${getTabAccentClass(tab)}` : ''} ${isPinned ? 'tab-pinned' : ''}`}
                 onClick={() => onSwitchTab(index)}
                 role="tab"
                 tabIndex={0}
-                aria-selected={index === activeTabIndex}
+                aria-selected={isActive}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     onSwitchTab(index);
                   }
                 }}
+                onContextMenu={e => {
+                  e.preventDefault();
+                  // Simple context menu via pin toggle
+                  if (onPinTab) onPinTab(tab.id);
+                }}
               >
                 {tab.loading ? (
                   <div className="tab-spinner" aria-hidden="true" />
+                ) : isPinned ? (
+                  <span className="material-symbols-outlined tab-kind-icon tab-pin-icon">keep</span>
                 ) : (
                   <span className="material-symbols-outlined tab-kind-icon">{getTabIcon(tab)}</span>
                 )}
-                <span className="tab-title">{tabTitle}</span>
-                <button
-                  className="tab-close"
-                  onClick={(e) => { e.stopPropagation(); onCloseTab(index); }}
-                  title={`Close ${tabTitle} tab`}
-                  aria-label={`Close ${tabTitle} tab`}
-                >×</button>
+                {!isPinned && (
+                  renamingTabId === tab.id ? (
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') confirmRename();
+                        if (e.key === 'Escape') cancelRename();
+                      }}
+                      onBlur={confirmRename}
+                      className="tab-rename-input"
+                      autoFocus
+                      onClick={e => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      className="tab-title"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        startRename(tab);
+                      }}
+                    >
+                      {tabTitle}
+                    </span>
+                  )
+                )}
+                {!isPinned && (
+                  <button
+                    className="tab-close"
+                    onClick={(e) => { e.stopPropagation(); onCloseTab(index); }}
+                    title={`Close ${tabTitle} tab`}
+                    aria-label={`Close ${tabTitle} tab`}
+                  >×</button>
+                )}
               </div>
             );
           })}
@@ -218,7 +292,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             <span>+</span>
           </button>
         </div>
-        
+
         {tokenCount && (
           <div className="flex items-center mr-4">
             <span className="token-display" aria-live="polite" aria-atomic="true">
@@ -236,6 +310,18 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           </div>
         )}
 
+        {/* Side panel toggle */}
+        {onToggleSidePanel && (
+          <button
+            className={`tab-bar-btn ${sidePanelOpen ? 'active' : ''}`}
+            onClick={onToggleSidePanel}
+            title={sidePanelOpen ? 'Close side panel' : 'Open side panel'}
+            aria-label={sidePanelOpen ? 'Close side panel' : 'Open side panel'}
+            style={sidePanelOpen ? { color: 'var(--bw-accent)' } : undefined}
+          >
+            <span className="material-symbols-outlined">right_panel_open</span>
+          </button>
+        )}
         <button className="tab-bar-btn" onClick={() => window.open(window.location.href, '_blank')} title="Open new window" aria-label="Open new window">
           <span className="material-symbols-outlined">open_in_new</span>
         </button>
@@ -265,8 +351,11 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         canBookmark={canBookmark}
       />
 
-      <div className="browser-viewport" role="tabpanel">
-        {children}
+      <div className="browser-content-row">
+        <div className="browser-viewport" role="tabpanel">
+          {children}
+        </div>
+        {sidePanelOpen && sidePanel}
       </div>
 
       {(groundingSources.length > 0 || searchEntryPointHtml) && (

@@ -22,7 +22,7 @@ const SHORTCUTS = [
   { keys: `${mod}+K`, description: 'Command palette' },
   { keys: `${mod}+L`, description: 'Focus address bar' },
   { keys: `${mod}+T`, description: 'New tab' },
-  { keys: `${mod}+Shift+T`, description: 'New AI tab' },
+  { keys: `${mod}+Shift+T`, description: 'Reopen closed tab' },
   { keys: `${mod}+W`, description: 'Close tab' },
   { keys: `${mod}+1–9`, description: 'Switch to tab' },
 ];
