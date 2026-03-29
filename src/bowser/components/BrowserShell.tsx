@@ -135,6 +135,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   onToggleSidePanel,
   sidePanel,
   viewportRef,
+  webHistoryPosition,
+  webHistoryTotal,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
