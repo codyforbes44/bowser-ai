@@ -5,6 +5,12 @@ import { getStorageItem, setStorageItem } from '../utils/storage';
 // Workspace persistence
 // ============================================
 
+export interface SerializedHistoryEntry {
+  prompt: string;
+  breadcrumb: { sitename: string; page: string };
+  isGrounded: boolean;
+}
+
 export interface SerializedTab {
   tabKind: TabKind;
   browserUrl?: string;
@@ -12,6 +18,10 @@ export interface SerializedTab {
   pinned?: boolean;
   breadcrumb: { sitename: string; page: string };
   lastPrompt?: string;
+  aiHistory?: SerializedHistoryEntry[];
+  aiCurrentIndex?: number;
+  webHistory?: string[];
+  webHistoryIndex?: number;
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -26,6 +36,12 @@ export function saveWorkspace(tabs: Tab[]): void {
       pinned: t.pinned,
       breadcrumb: t.breadcrumb,
       lastPrompt: t.currentIndex >= 0 ? t.history[t.currentIndex]?.prompt : undefined,
+      aiHistory: t.tabKind === 'ai' && t.history.length > 0
+        ? t.history.map(p => ({ prompt: p.prompt, breadcrumb: p.breadcrumb, isGrounded: p.isGrounded }))
+        : undefined,
+      aiCurrentIndex: t.tabKind === 'ai' && t.currentIndex >= 0 ? t.currentIndex : undefined,
+      webHistory: t.tabKind === 'web' && t.webHistory.length > 0 ? t.webHistory : undefined,
+      webHistoryIndex: t.tabKind === 'web' && t.webHistory.length > 0 ? t.webHistoryIndex : undefined,
     }));
     setStorageItem('workspace', serializable);
   }, 2000);
@@ -41,6 +57,27 @@ export function restoreWorkspace(): Tab[] | null {
     if (s.customTitle) tab.customTitle = s.customTitle;
     if (s.pinned) tab.pinned = s.pinned;
     tab.breadcrumb = s.breadcrumb || { sitename: '', page: '' };
+    // Restore web history
+    if (s.webHistory && s.webHistory.length > 0) {
+      tab.webHistory = s.webHistory;
+      tab.webHistoryIndex = s.webHistoryIndex ?? s.webHistory.length - 1;
+    }
+    // Restore AI history stubs (prompt + breadcrumb only, no HTML)
+    if (s.aiHistory && s.aiHistory.length > 0) {
+      tab.history = s.aiHistory.map(h => ({
+        html: '',
+        breadcrumb: h.breadcrumb,
+        scrollPosition: 0,
+        timestamp: 0,
+        tokenCount: { input: 0, output: 0, isEstimate: true },
+        prompt: h.prompt,
+        contextHtml: null,
+        isGrounded: h.isGrounded,
+        groundingSources: [],
+        searchEntryPointHtml: '',
+      }));
+      tab.currentIndex = s.aiCurrentIndex ?? s.aiHistory.length - 1;
+    }
     return tab;
   });
 }

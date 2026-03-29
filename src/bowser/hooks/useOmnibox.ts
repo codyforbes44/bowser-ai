@@ -35,10 +35,14 @@ export function useOmnibox(deps: {
     if (decision.error) return;
 
     if (decision.kind === 'web') {
-      updateTabById(tab.id, t => ({
-        ...t, tabKind: 'web', browserUrl: decision.url,
-        breadcrumb: { sitename: decision.url, page: '' }, navigationId: t.navigationId + 1
-      }));
+      updateTabById(tab.id, t => {
+        const newWebHistory = [...t.webHistory.slice(0, t.webHistoryIndex + 1), decision.url];
+        return {
+          ...t, tabKind: 'web', browserUrl: decision.url,
+          breadcrumb: { sitename: decision.url, page: '' }, navigationId: t.navigationId + 1,
+          webHistory: newWebHistory, webHistoryIndex: newWebHistory.length - 1,
+        };
+      });
       addHistoryEntry({ url: decision.url, title: decision.url, tabKind: 'web' });
       return;
     }

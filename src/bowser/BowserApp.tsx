@@ -84,7 +84,17 @@ const BowserApp: React.FC = () => {
   }, [generate, currentPage, activeTab]);
 
   const handleBack = useCallback(() => {
-    if (!activeTab || activeTab.tabKind === 'web') return;
+    if (!activeTab) return;
+    if (activeTab.tabKind === 'web') {
+      if (activeTab.webHistoryIndex > 0) {
+        updateTabById(activeTab.id, tab => {
+          const newIndex = tab.webHistoryIndex - 1;
+          const url = tab.webHistory[newIndex];
+          return { ...tab, webHistoryIndex: newIndex, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
+        });
+      }
+      return;
+    }
     if (activeTab.currentIndex > 0) {
       const prevPage = activeTab.history[activeTab.currentIndex - 1];
       updateTabById(activeTab.id, tab => {
@@ -98,7 +108,17 @@ const BowserApp: React.FC = () => {
   }, [activeTab, updateTabById]);
 
   const handleForward = useCallback(() => {
-    if (!activeTab || activeTab.tabKind === 'web') return;
+    if (!activeTab) return;
+    if (activeTab.tabKind === 'web') {
+      if (activeTab.webHistoryIndex < activeTab.webHistory.length - 1) {
+        updateTabById(activeTab.id, tab => {
+          const newIndex = tab.webHistoryIndex + 1;
+          const url = tab.webHistory[newIndex];
+          return { ...tab, webHistoryIndex: newIndex, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
+        });
+      }
+      return;
+    }
     if (activeTab.currentIndex < activeTab.history.length - 1) {
       const nextPage = activeTab.history[activeTab.currentIndex + 1];
       updateTabById(activeTab.id, tab => {
@@ -256,8 +276,8 @@ const BowserApp: React.FC = () => {
         onRefresh={handleRefresh}
         onStop={handleStop}
         onHome={handleHome}
-        canGoBack={activeTab.tabKind === 'web' ? false : activeTab.currentIndex > 0}
-        canGoForward={activeTab.tabKind === 'web' ? false : activeTab.currentIndex < activeTab.history.length - 1}
+        canGoBack={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex > 0 : activeTab.currentIndex > 0}
+        canGoForward={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex < activeTab.webHistory.length - 1 : activeTab.currentIndex < activeTab.history.length - 1}
         groundingSources={activeTab.groundingSources}
         searchEntryPointHtml={activeTab.searchEntryPointHtml}
         tabs={tabs}
