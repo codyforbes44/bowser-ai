@@ -1,4 +1,14 @@
 import { TabKind } from '../types';
+import { getStorageItem } from './storage';
+
+export type SearchEngine = 'duckduckgo' | 'google' | 'bing' | 'brave';
+
+const SEARCH_ENGINE_URLS: Record<SearchEngine, string> = {
+  duckduckgo: 'https://duckduckgo.com/?q=',
+  google: 'https://google.com/search?q=',
+  bing: 'https://bing.com/search?q=',
+  brave: 'https://search.brave.com/search?q=',
+};
 
 export interface NavigationDecision {
   kind: TabKind;
@@ -40,7 +50,10 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
     return { kind: 'ai', url: trimmed, query: trimmed };
   }
 
-  return { kind: 'web', url: `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`, query: trimmed };
+  // Use configured search engine
+  const engine = getStorageItem<SearchEngine>('search-engine', 'duckduckgo');
+  const searchUrl = SEARCH_ENGINE_URLS[engine] || SEARCH_ENGINE_URLS.duckduckgo;
+  return { kind: 'web', url: `${searchUrl}${encodeURIComponent(trimmed)}`, query: trimmed };
 }
 
 function validateWebUrl(input: string): NavigationDecision {

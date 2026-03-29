@@ -23,6 +23,8 @@ interface AddressBarProps {
   isBookmarked: boolean;
   onToggleBookmark: () => void;
   canBookmark: boolean;
+  isMobile?: boolean;
+  onToggleSidePanel?: () => void;
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -44,6 +46,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   isBookmarked,
   onToggleBookmark,
   canBookmark,
+  isMobile = false,
+  onToggleSidePanel,
 }) => {
   const displayText = breadcrumbToDisplay(breadcrumb);
   const [inputVal, setInputVal] = useState(() => {
@@ -200,22 +204,37 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     ? 'Generating…'
     : isFocused ? inputVal : inputVal.replace(/\./g, ' › ');
 
+  // Determine favicon and security for current URL
+  const currentUrl = isBrowserMode ? breadcrumb.sitename : '';
+  let faviconUrl = '';
+  let isHttps = true;
+  if (currentUrl && currentUrl.startsWith('http')) {
+    try {
+      const parsed = new URL(currentUrl);
+      faviconUrl = `https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=32`;
+      isHttps = parsed.protocol === 'https:';
+    } catch { /* ignore */ }
+  }
+
   return (
-    <div className="address-bar">
-      <div className="nav-buttons">
-        <button onClick={onBack} disabled={!canGoBack} className={`nav-btn ${!canGoBack ? 'disabled' : ''}`} title="Back" aria-label="Go back">
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Forward" aria-label="Go forward">
-          <span className="material-symbols-outlined">arrow_forward</span>
-        </button>
-        <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Reload'} aria-label={isLoading ? 'Stop loading' : 'Reload page'}>
-          <span className="material-symbols-outlined">{isLoading ? 'close' : 'refresh'}</span>
-        </button>
-        <button onClick={onHome} className="nav-btn" title="New tab" aria-label="New tab">
-          <span className="material-symbols-outlined">home</span>
-        </button>
-      </div>
+    <div className={`address-bar ${isMobile ? 'address-bar-mobile' : ''}`}>
+      {/* Nav buttons - hidden on mobile */}
+      {!isMobile && (
+        <div className="nav-buttons">
+          <button onClick={onBack} disabled={!canGoBack} className={`nav-btn ${!canGoBack ? 'disabled' : ''}`} title="Back" aria-label="Go back">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </button>
+          <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Forward" aria-label="Go forward">
+            <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+          </button>
+          <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Reload'} aria-label={isLoading ? 'Stop loading' : 'Reload page'}>
+            <span className="material-symbols-outlined" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
+          </button>
+          <button onClick={onHome} className="nav-btn" title="New tab" aria-label="New tab">
+            <span className="material-symbols-outlined" aria-hidden="true">home</span>
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="omnibar-form">
         <div className="omnibar-wrapper">
@@ -223,6 +242,15 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <div className="omnibar-loading">{loadingMessage}</div>
           ) : (
             <div className="relative flex items-center w-full">
+              {/* Security badge / favicon */}
+              {faviconUrl && !isFocused && (
+                <div className="flex items-center gap-1 pl-2 flex-shrink-0">
+                  <span className="material-symbols-outlined text-[14px]" style={{ color: isHttps ? 'var(--bw-green)' : 'var(--bw-red)' }} aria-label={isHttps ? 'Secure connection' : 'Not secure'}>
+                    {isHttps ? 'lock' : 'warning'}
+                  </span>
+                  <img src={faviconUrl} alt="" className="w-4 h-4 rounded-sm" />
+                </div>
+              )}
               <input
                 ref={inputRef}
                 type="text"
@@ -247,7 +275,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 aria-label="Go"
                 onMouseDown={(e) => { e.preventDefault(); }}
               >
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
               </button>
             </div>
           )}
@@ -267,7 +295,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           )}
           {isFocused && searchHistory.length > 0 && (
             <div
-              className="absolute top-full left-0 right-0 mt-1 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto"
+              className={`absolute ${isMobile ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 right-0 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto`}
               role="listbox"
               aria-label="Recent searches"
               style={{
@@ -290,7 +318,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span className="material-symbols-outlined text-[14px]" style={{ color: 'var(--bw-text-quaternary)' }}>
+                  <span className="material-symbols-outlined text-[14px]" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
                     {item.startsWith('http') ? 'public' : 'history'}
                   </span>
                   <span className="truncate flex-1 text-[13px]">{item}</span>
@@ -305,7 +333,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                     title="Remove"
                     aria-label={`Remove "${item}" from recent searches`}
                   >
-                    <span className="material-symbols-outlined text-[13px]">close</span>
+                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">close</span>
                   </button>
                 </div>
               ))}
@@ -314,90 +342,156 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         </div>
       </form>
 
-      <button
-        type="button"
-        onClick={onToggleBookmark}
-        disabled={!canBookmark}
-        className={`nav-btn ${!canBookmark ? 'disabled' : ''}`}
-        style={{ color: isBookmarked ? 'var(--bw-accent)' : undefined }}
-        title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
-        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
-      >
-        <span className="material-symbols-outlined">
-          {isBookmarked ? 'star' : 'star_border'}
-        </span>
-      </button>
-
-      {/* Mode toggle */}
-      <button
-        onClick={onToggleBrowserMode}
-        className="flex items-center gap-1.5 ml-1 mr-1 px-2.5 py-1.5 rounded-md transition-colors"
-        style={{ border: '1px solid var(--bw-border)', background: 'transparent' }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-        title={isBrowserMode ? 'Switch to AI mode — generate pages from descriptions' : 'Switch to Web mode — browse real websites'}
-        aria-label={`Switch to ${isBrowserMode ? 'AI' : 'Web'} mode`}
-      >
-        <span
-          className="text-[11px] font-semibold select-none"
-          style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}
-        >
-          AI
-        </span>
-        <div
-          className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
-          role="switch"
-          aria-checked={isBrowserMode}
-          style={{ width: '26px', height: '14px' }}
-        >
-          <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />
-        </div>
-        <span
-          className="text-[11px] font-semibold select-none"
-          style={{ color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-text-quaternary)' }}
-        >
-          Web
-        </span>
-      </button>
-
-      <button
-        onClick={onToggleGrounding}
-        className="nav-btn"
-        style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
-        title={isGrounded ? 'Live data on — pages include real-time web results' : 'Live data off — pages are generated from AI knowledge only'}
-        aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
-        aria-pressed={isGrounded}
-      >
-        <span className="material-symbols-outlined">language</span>
-      </button>
-
-      <div className="menu-container" ref={menuRef}>
-        <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
-          <span className="material-symbols-outlined">more_vert</span>
-        </button>
-        {menuOpen && (
-          <div className="dropdown-menu" role="menu">
-            <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[13px]">Live data</span>
-              <div
-                className={`toggle-track ${isGrounded ? 'active' : ''}`}
-                onClick={onToggleGrounding}
-                role="switch"
-                aria-checked={isGrounded}
-                tabIndex={0}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onToggleGrounding();
-                  }
-                }}
-              >
-                <div className="toggle-thumb" />
+      {/* Mobile: compact action buttons */}
+      {isMobile ? (
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onToggleBookmark}
+            disabled={!canBookmark}
+            className={`nav-btn nav-btn-mobile ${!canBookmark ? 'disabled' : ''}`}
+            style={{ color: isBookmarked ? 'var(--bw-accent)' : undefined }}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">{isBookmarked ? 'star' : 'star_border'}</span>
+          </button>
+          {onToggleSidePanel && (
+            <button
+              className="nav-btn nav-btn-mobile"
+              onClick={onToggleSidePanel}
+              aria-label="Assistant"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+            </button>
+          )}
+          <div className="menu-container" ref={menuRef}>
+            <button className="nav-btn nav-btn-mobile" onClick={() => setMenuOpen(!menuOpen)} aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
+              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+            {menuOpen && (
+              <div className="dropdown-menu dropdown-menu-mobile" role="menu">
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onBack(); setMenuOpen(false); }} disabled={!canGoBack}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+                  <span className="text-[13px]">Back</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onForward(); setMenuOpen(false); }} disabled={!canGoForward}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
+                  <span className="text-[13px]">Forward</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
+                  <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">home</span>
+                  <span className="text-[13px]">New tab</span>
+                </button>
+                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[13px]">
+                    {isBrowserMode ? 'Web mode' : 'AI mode'}
+                  </span>
+                  <div
+                    className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
+                    onClick={onToggleBrowserMode}
+                    role="switch"
+                    aria-checked={isBrowserMode}
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleBrowserMode(); } }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[13px]">Live data</span>
+                  <div
+                    className={`toggle-track ${isGrounded ? 'active' : ''}`}
+                    onClick={onToggleGrounding}
+                    role="switch"
+                    aria-checked={isGrounded}
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleGrounding(); } }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
               </div>
-            </label>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onToggleBookmark}
+            disabled={!canBookmark}
+            className={`nav-btn ${!canBookmark ? 'disabled' : ''}`}
+            style={{ color: isBookmarked ? 'var(--bw-accent)' : undefined }}
+            title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              {isBookmarked ? 'star' : 'star_border'}
+            </span>
+          </button>
+
+          {/* Mode toggle */}
+          <button
+            onClick={onToggleBrowserMode}
+            className="flex items-center gap-1.5 ml-1 mr-1 px-2.5 py-1.5 rounded-md transition-colors"
+            style={{ border: '1px solid var(--bw-border)', background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            title={isBrowserMode ? 'Switch to AI mode' : 'Switch to Web mode'}
+            aria-label={`Switch to ${isBrowserMode ? 'AI' : 'Web'} mode`}
+          >
+            <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>AI</span>
+            <div
+              className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
+              role="switch"
+              aria-checked={isBrowserMode}
+              style={{ width: '26px', height: '14px' }}
+            >
+              <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />
+            </div>
+            <span className="text-[11px] font-semibold select-none" style={{ color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-text-quaternary)' }}>Web</span>
+          </button>
+
+          <button
+            onClick={onToggleGrounding}
+            className="nav-btn"
+            style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
+            title={isGrounded ? 'Live data on' : 'Live data off'}
+            aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
+            aria-pressed={isGrounded}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">language</span>
+          </button>
+
+          <div className="menu-container" ref={menuRef}>
+            <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
+              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+            {menuOpen && (
+              <div className="dropdown-menu" role="menu">
+                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[13px]">Live data</span>
+                  <div
+                    className={`toggle-track ${isGrounded ? 'active' : ''}`}
+                    onClick={onToggleGrounding}
+                    role="switch"
+                    aria-checked={isGrounded}
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleGrounding(); } }}
+                  >
+                    <div className="toggle-thumb" />
+                  </div>
+                </label>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
