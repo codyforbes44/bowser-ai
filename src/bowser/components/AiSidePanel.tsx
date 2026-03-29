@@ -94,17 +94,17 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
+          <span className="material-symbols-outlined icon-md" style={{ color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
           <span className="text-[13px] font-semibold" style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.01em' }}>Assistant</span>
         </div>
         <div className="flex items-center gap-1">
           {(response || activeAction) && (
             <button onClick={handleNewConversation} className="p-1 rounded" style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="New conversation" title="New conversation">
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden="true">refresh</span>
+              <span className="material-symbols-outlined icon-md" aria-hidden="true">refresh</span>
             </button>
           )}
           <button onClick={onClose} className="p-1 rounded" style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Close panel">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden="true">close</span>
+            <span className="material-symbols-outlined icon-md" aria-hidden="true">close</span>
           </button>
         </div>
       </div>
@@ -112,7 +112,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       {/* Body */}
       {isSystemTab || !canAnalyze ? (
         <div className="side-panel-empty" role="status">
-          <span className="material-symbols-outlined mb-2" style={{ fontSize: '24px', color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">chat_bubble_outline</span>
+          <span className="material-symbols-outlined icon-xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">chat_bubble_outline</span>
           <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>
             {isSystemTab ? 'Nothing to discuss' : 'Open a page first'}
           </p>
@@ -133,7 +133,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           <div className="side-panel-actions" role="toolbar" aria-label="Quick actions">
             {actions.map(a => (
               <button key={a.id} onClick={() => runAction(a.id)} disabled={loading} className={`side-panel-action ${activeAction === a.id ? 'active' : ''}`} aria-pressed={activeAction === a.id}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">{a.icon}</span>
+                <span className="material-symbols-outlined icon-sm" aria-hidden="true">{a.icon}</span>
                 <span className="text-[11px]">{a.label}</span>
               </button>
             ))}
@@ -142,7 +142,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           <form onSubmit={handleAsk} className="side-panel-ask">
             <input type="text" value={question} onChange={e => setQuestion(e.target.value)} placeholder={isWebTab ? 'Ask about this topic…' : 'Ask about this page…'} className="side-panel-ask-input" disabled={loading} aria-label="Ask a question" />
             <button type="submit" disabled={loading || !question.trim()} className="side-panel-ask-btn" aria-label="Send">
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">send</span>
+              <span className="material-symbols-outlined icon-sm" aria-hidden="true">send</span>
             </button>
           </form>
 

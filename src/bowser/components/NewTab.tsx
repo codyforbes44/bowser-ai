@@ -111,7 +111,7 @@ export const NewTab: React.FC<NewTabProps> = ({
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               title={isBrowserMode ? 'Switch to AI mode' : 'Switch to Web mode'}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">
+              <span className="material-symbols-outlined icon-sm" aria-hidden="true">
                 {isBrowserMode ? 'public' : 'auto_awesome'}
               </span>
               {isBrowserMode ? 'Web' : 'AI'}
@@ -129,7 +129,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             }}
             title={isGrounded ? 'Live data enabled' : 'Enable live data'}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">language</span>
+            <span className="material-symbols-outlined icon-sm" aria-hidden="true">language</span>
             Live data {isGrounded ? 'on' : 'off'}
           </button>
         </div>
@@ -199,8 +199,8 @@ export const NewTab: React.FC<NewTabProps> = ({
                   title={bm.title}
                 >
                   <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: '18px', color: bm.tabKind === 'web' ? 'var(--bw-green)' : 'var(--bw-accent)', opacity: 0.7 }}
+                    className="material-symbols-outlined icon-lg"
+                    style={{ color: bm.tabKind === 'web' ? 'var(--bw-green)' : 'var(--bw-accent)', opacity: 0.7 }}
                     aria-hidden="true"
                   >
                     {bm.tabKind === 'web' ? 'public' : 'auto_awesome'}
@@ -230,7 +230,7 @@ export const NewTab: React.FC<NewTabProps> = ({
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '14px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">auto_awesome</span>
+                  <span className="material-symbols-outlined icon-sm flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">auto_awesome</span>
                   <span className="text-[12px] truncate flex-1" style={{ color: 'var(--bw-text-secondary)' }}>{p}</span>
                 </button>
               ))}
@@ -254,7 +254,7 @@ export const NewTab: React.FC<NewTabProps> = ({
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '14px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
+                  <span className="material-symbols-outlined icon-sm flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
                     {entry.tabKind === 'web' ? 'public' : 'auto_awesome'}
                   </span>
                   <span className="text-[12px] truncate flex-1" style={{ color: 'var(--bw-text-secondary)' }}>{entry.title}</span>
@@ -295,7 +295,7 @@ const QuickChip: React.FC<{ icon: string; label: string; onClick: () => void }> 
     onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
   >
-    <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">{icon}</span>
+    <span className="material-symbols-outlined icon-sm" aria-hidden="true">{icon}</span>
     {label}
   </button>
 );

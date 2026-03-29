@@ -35,7 +35,7 @@ export const InstallPrompt: React.FC = () => {
       className="flex items-center gap-3 px-4 py-2.5 mt-4 max-w-sm mx-auto"
       style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border)', borderRadius: 'var(--bw-radius-md)' }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--bw-accent)' }} aria-hidden="true">download</span>
+      <span className="material-symbols-outlined icon-lg" style={{ color: 'var(--bw-accent)' }} aria-hidden="true">download</span>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-medium" style={{ color: 'var(--bw-text-primary)' }}>Install Bowser for the best experience.</p>
       </div>

@@ -44,7 +44,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ history, onClearHistory,
       <div className="max-w-3xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6" style={{ height: '40px', borderBottom: '1px solid var(--bw-border-subtle)', paddingBottom: '12px' }}>
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">history</span>
+            <span className="material-symbols-outlined icon-lg" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">history</span>
             <h1 className="text-[14px] font-semibold" style={{ letterSpacing: '-0.02em' }}>History</h1>
           </div>
           {history.length > 0 && (
@@ -56,7 +56,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ history, onClearHistory,
 
         {history.length > 0 && (
           <div className="mb-6 relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2" style={{ fontSize: '16px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">search</span>
+            <span className="material-symbols-outlined icon-md absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">search</span>
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search history…"
@@ -69,12 +69,12 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ history, onClearHistory,
 
         {history.length === 0 ? (
           <div className="text-center mt-24">
-            <span className="material-symbols-outlined mb-2" style={{ fontSize: '24px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">history</span>
+            <span className="material-symbols-outlined icon-xl mb-2" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">history</span>
             <p className="text-[13px]" style={{ color: 'var(--bw-text-tertiary)' }}>Nothing here yet. Pages you visit will appear here.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center mt-20">
-            <span className="material-symbols-outlined mb-2" style={{ fontSize: '24px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">search_off</span>
+            <span className="material-symbols-outlined icon-xl mb-2" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">search_off</span>
             <p className="text-[13px]" style={{ color: 'var(--bw-text-tertiary)' }}>No results for "{search}"</p>
           </div>
         ) : (
@@ -93,7 +93,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ history, onClearHistory,
                       onClick={() => onNavigate(entry.url, entry.tabKind)}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '14px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
+                        <span className="material-symbols-outlined icon-sm flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">
                           {entry.tabKind === 'web' ? 'public' : 'auto_awesome'}
                         </span>
                         <span className="text-[12px] truncate" style={{ color: 'var(--bw-text-primary)' }}>{entry.title}</span>
@@ -110,7 +110,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ history, onClearHistory,
                           onMouseLeave={e => { e.currentTarget.style.color = 'var(--bw-text-quaternary)'; e.currentTarget.style.background = 'transparent'; }}
                           title="Remove" aria-label="Remove from history"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">close</span>
+                          <span className="material-symbols-outlined icon-sm" aria-hidden="true">close</span>
                         </button>
                       </div>
                     </div>

@@ -53,7 +53,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
     <div className="w-full h-full overflow-y-auto" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
       <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="flex items-center gap-2.5 mb-8" style={{ height: '40px', borderBottom: '1px solid var(--bw-border-subtle)', paddingBottom: '12px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--bw-text-quaternary)' }} aria-hidden="true">settings</span>
+          <span className="material-symbols-outlined icon-lg" style={{ color: 'var(--bw-text-quaternary)' }} aria-hidden="true">settings</span>
           <h1 className="text-[14px] font-semibold" style={{ letterSpacing: '-0.02em' }}>Settings</h1>
         </div>
 
@@ -144,7 +144,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
                   className="flex items-center gap-1.5 text-[12px] font-medium"
                   style={{ color: 'var(--bw-text-secondary)', transition: 'color 0.1s ease' }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', transform: showShortcuts ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }} aria-hidden="true">chevron_right</span>
+                  <span className="material-symbols-outlined icon-sm" style={{ transform: showShortcuts ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }} aria-hidden="true">chevron_right</span>
                   Keyboard shortcuts
                 </button>
                 {showShortcuts && (
@@ -172,7 +172,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
 const SettingsSection: React.FC<{ icon: string; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
   <section className="settings-section">
     <h2 className="text-[11px] font-medium uppercase tracking-widest mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-quaternary)' }}>
-      <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">{icon}</span>
+      <span className="material-symbols-outlined icon-sm" aria-hidden="true">{icon}</span>
       {title}
     </h2>
     <div className="space-y-4">{children}</div>
