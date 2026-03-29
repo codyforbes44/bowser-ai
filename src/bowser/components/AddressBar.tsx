@@ -25,6 +25,8 @@ interface AddressBarProps {
   canBookmark: boolean;
   isMobile?: boolean;
   onToggleSidePanel?: () => void;
+  webHistoryPosition?: number;
+  webHistoryTotal?: number;
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -48,6 +50,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   canBookmark,
   isMobile = false,
   onToggleSidePanel,
+  webHistoryPosition,
+  webHistoryTotal,
 }) => {
   const displayText = breadcrumbToDisplay(breadcrumb);
   const [inputVal, setInputVal] = useState(() => {
@@ -227,6 +231,15 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Forward" aria-label="Go forward">
             <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
           </button>
+          {isBrowserMode && webHistoryTotal != null && webHistoryTotal > 1 && (
+            <span
+              className="text-[10px] font-medium select-none tabular-nums px-1"
+              style={{ color: 'var(--bw-text-quaternary)' }}
+              title={`Page ${webHistoryPosition} of ${webHistoryTotal}`}
+            >
+              {webHistoryPosition}/{webHistoryTotal}
+            </span>
+          )}
           <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Reload'} aria-label={isLoading ? 'Stop loading' : 'Reload page'}>
             <span className="material-symbols-outlined" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
           </button>

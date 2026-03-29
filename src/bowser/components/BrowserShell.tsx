@@ -96,6 +96,8 @@ interface BrowserShellProps {
   onToggleSidePanel?: () => void;
   sidePanel?: React.ReactNode;
   viewportRef?: React.RefObject<HTMLDivElement | null>;
+  webHistoryPosition?: number;
+  webHistoryTotal?: number;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
@@ -133,6 +135,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   onToggleSidePanel,
   sidePanel,
   viewportRef,
+  webHistoryPosition,
+  webHistoryTotal,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -437,6 +441,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           isBookmarked={isBookmarked}
           onToggleBookmark={onToggleBookmark}
           canBookmark={canBookmark}
+          webHistoryPosition={webHistoryPosition}
+          webHistoryTotal={webHistoryTotal}
         />
       )}
 
@@ -506,6 +512,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             onToggleBookmark={onToggleBookmark}
             canBookmark={canBookmark}
             isMobile={true}
+            webHistoryPosition={webHistoryPosition}
+            webHistoryTotal={webHistoryTotal}
             onToggleSidePanel={onToggleSidePanel}
           />
           {mobileTabBar}
