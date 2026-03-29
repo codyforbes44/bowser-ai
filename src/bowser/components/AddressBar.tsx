@@ -63,6 +63,15 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleFocusEvent = () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    window.addEventListener('bowser:focus-omnibar', handleFocusEvent);
+    return () => window.removeEventListener('bowser:focus-omnibar', handleFocusEvent);
+  }, []);
+
+  useEffect(() => {
     setStorageItem('current-input', inputVal);
   }, [inputVal]);
 

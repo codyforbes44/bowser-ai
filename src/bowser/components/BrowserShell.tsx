@@ -154,8 +154,30 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         return tab.browserUrl || 'Browser';
       }
     }
+    if (tab.tabKind === 'history') return 'History';
+    if (tab.tabKind === 'bookmarks') return 'Bookmarks';
+    if (tab.tabKind === 'settings') return 'Settings';
     const bc = tab.breadcrumb;
     return bc.page || bc.sitename || 'New Tab';
+  };
+
+  const getTabIcon = (tab: Tab): string => {
+    switch (tab.tabKind) {
+      case 'web': return 'public';
+      case 'ai': return 'auto_awesome';
+      case 'history': return 'history';
+      case 'bookmarks': return 'bookmarks';
+      case 'settings': return 'settings';
+      default: return 'add';
+    }
+  };
+
+  const getTabAccentClass = (tab: Tab): string => {
+    switch (tab.tabKind) {
+      case 'ai': return 'tab-accent-ai';
+      case 'web': return 'tab-accent-web';
+      default: return 'tab-accent-system';
+    }
   };
 
   const isOutputPhase = (tokenCount?.output ?? 0) > 0;
@@ -170,7 +192,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           {tabs.map((tab, index) => (
             <div
               key={tab.id}
-              className={`tab ${index === activeTabIndex ? 'active-tab' : ''}`}
+              className={`tab ${index === activeTabIndex ? `active-tab ${getTabAccentClass(tab)}` : ''}`}
               onClick={() => onSwitchTab(index)}
               role="tab"
               tabIndex={0}
@@ -182,7 +204,11 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
                 }
               }}
             >
-              {tab.loading && <div className="tab-spinner" aria-hidden="true" />}
+              {tab.loading ? (
+                <div className="tab-spinner" aria-hidden="true" />
+              ) : (
+                <span className="material-symbols-outlined tab-kind-icon">{getTabIcon(tab)}</span>
+              )}
               <span className="tab-title">{getTabTitle(tab)}</span>
               <button
                 className="tab-close"
