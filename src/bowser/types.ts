@@ -91,6 +91,6 @@ export function createTab(tabKind: TabKind = 'new-tab'): Tab {
     groundingSources: [],
     searchEntryPointHtml: '',
     navigationId: 0,
-    browserUrl: tabKind === 'web' ? 'https://www.google.com/webhp?igu=1' : undefined,
+    browserUrl: undefined,
   };
 }

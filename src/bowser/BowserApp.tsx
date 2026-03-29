@@ -128,18 +128,10 @@ const BowserApp: React.FC = () => {
     const controller = abortControllersRef.current.get(tabId);
     if (controller) { controller.abort(); abortControllersRef.current.delete(tabId); }
 
-    if (activeTab.tabKind === 'web') {
-      updateTabById(tabId, tab => ({
-        ...tab, browserUrl: 'https://www.google.com/webhp?igu=1',
-        breadcrumb: { sitename: 'https://www.google.com/webhp?igu=1', page: '' }, navigationId: tab.navigationId + 1
-      }));
-      return;
-    }
-
     updateTabById(tabId, tab => ({
       ...tab, tabKind: 'new-tab', currentIndex: -1, loading: false, loadingMessage: '',
       generatedContent: '', breadcrumb: { sitename: '', page: '' }, tokenCount: null,
-      groundingSources: [], searchEntryPointHtml: '',
+      groundingSources: [], searchEntryPointHtml: '', browserUrl: undefined,
     }));
   }, [activeTab, updateTabById, abortControllersRef]);
 
@@ -149,7 +141,7 @@ const BowserApp: React.FC = () => {
       const newKind = tab.tabKind === 'web' ? 'ai' : 'web';
       return {
         ...tab, tabKind: newKind,
-        browserUrl: newKind === 'web' ? 'https://www.google.com/webhp?igu=1' : undefined,
+        browserUrl: undefined,
         currentIndex: -1, history: [], loading: false, generatedContent: '',
         breadcrumb: { sitename: '', page: '' },
       };
