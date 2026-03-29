@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { AddressBar } from './AddressBar';
-import { Breadcrumb, GroundingSource, Tab, TokenCount } from '../types';
+import { Breadcrumb, Tab, TokenCount } from '../types';
 
 const AnimatedNumber: React.FC<{ value: number; prefix?: string; prefixVisible?: boolean; animate?: boolean }> = React.memo(({ value, prefix, prefixVisible = true, animate = true }) => {
   const [displayed, setDisplayed] = useState(0);
@@ -74,15 +74,11 @@ interface BrowserShellProps {
   onHome: () => void;
   canGoBack: boolean;
   canGoForward: boolean;
-  groundingSources: GroundingSource[];
-  searchEntryPointHtml: string;
   tabs: Tab[];
   activeTabIndex: number;
   onNewTab: () => void;
   onCloseTab: (index: number) => void;
   onSwitchTab: (index: number) => void;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   isBrowserMode: boolean;
   onToggleBrowserMode: () => void;
   tokenCount: TokenCount | null;
@@ -115,15 +111,11 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   onHome,
   canGoBack,
   canGoForward,
-  groundingSources,
-  searchEntryPointHtml,
   tabs,
   activeTabIndex,
   onNewTab,
   onCloseTab,
   onSwitchTab,
-  isGrounded,
-  onToggleGrounding,
   isBrowserMode,
   onToggleBrowserMode,
   tokenCount,
@@ -438,8 +430,6 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           onHome={onHome}
           canGoBack={canGoBack}
           canGoForward={canGoForward}
-          isGrounded={isGrounded}
-          onToggleGrounding={onToggleGrounding}
           isBrowserMode={isBrowserMode}
           onToggleBrowserMode={onToggleBrowserMode}
           isBookmarked={isBookmarked}
@@ -470,30 +460,6 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         </div>
       )}
 
-      {(groundingSources.length > 0 || searchEntryPointHtml) && (
-        <div className="grounding-row" aria-label="Sources">
-          {groundingSources.length > 0 && (
-            <div className="sources-container">
-              <div className="sources-row">
-                {groundingSources.map((source, i) => (
-                  <a key={i} className="source-chip" href={source.uri} target="_blank" rel="noopener noreferrer" title={source.title}>
-                    <img className="source-favicon" src={`https://www.google.com/s2/favicons?sz=16&domain=${source.title}`} alt="" />
-                    {source.title}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          {searchEntryPointHtml && (
-            <iframe
-              srcDoc={`<script>document.addEventListener('click',function(e){var a=e.target.closest('a');if(a&&a.href){e.preventDefault();window.open(a.href,'_blank');}});<\/script>${searchEntryPointHtml}`}
-              className="search-widget-iframe"
-              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-              title="Search suggestions"
-            />
-          )}
-        </div>
-      )}
 
       {/* Mobile: address bar above bottom tab bar */}
       {isMobile && (
@@ -510,8 +476,6 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             onHome={onHome}
             canGoBack={canGoBack}
             canGoForward={canGoForward}
-            isGrounded={isGrounded}
-            onToggleGrounding={onToggleGrounding}
             isBrowserMode={isBrowserMode}
             onToggleBrowserMode={onToggleBrowserMode}
             isBookmarked={isBookmarked}
