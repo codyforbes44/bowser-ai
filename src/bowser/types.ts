@@ -72,6 +72,8 @@ export interface Tab {
   searchEntryPointHtml: string;
   navigationId: number;
   browserUrl?: string;
+  pinned?: boolean;
+  customTitle?: string;
 }
 
 let nextTabId = 0;

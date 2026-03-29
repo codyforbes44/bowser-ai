@@ -52,6 +52,47 @@ export interface GenerationResult {
   tokenCount: TokenCount;
 }
 
+export type AnalysisAction = 'summarize' | 'key-points' | 'simplify' | 'ask';
+
+const ANALYSIS_PROMPTS: Record<AnalysisAction, string> = {
+  'summarize': 'Provide a clear, concise summary of this web page in 2-3 short paragraphs. Focus on the main content and purpose.',
+  'key-points': 'Extract the key points from this web page as a concise bullet list. Use "•" for bullets. Keep each point to one sentence.',
+  'simplify': 'Rewrite the main content of this web page in simpler, more accessible language. Keep the meaning but reduce complexity.',
+  'ask': '',
+};
+
+export async function* streamTextAnalysis(
+  pageHtml: string,
+  action: AnalysisAction,
+  question?: string,
+  abortSignal?: AbortSignal,
+): AsyncGenerator<string> {
+  const actionPrompt = action === 'ask'
+    ? (question || 'What is this page about?')
+    : ANALYSIS_PROMPTS[action];
+
+  const systemPrompt = 'You analyze web page content and provide clear, useful responses. Use plain text with minimal markdown (bold, bullets, paragraphs). Be concise and direct. Do not include HTML tags in your response.';
+  const userPrompt = `${actionPrompt}\n\nPage content:\n${pageHtml.slice(0, 30000)}`;
+
+  try {
+    const response = await ai.models.generateContentStream({
+      model: MODEL_NAME,
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        ...(abortSignal ? { abortSignal } : {}),
+      },
+    });
+
+    for await (const chunk of response) {
+      if (abortSignal?.aborted) break;
+      if (chunk.text) yield chunk.text;
+    }
+  } catch (error: any) {
+    if (error?.name === 'AbortError') return;
+    yield `Analysis failed: ${error?.message || 'Unknown error'}`;
+  }
+}
 export async function* streamPageGeneration(
   prompt: string,
   currentPageHtml: string | null = null,
