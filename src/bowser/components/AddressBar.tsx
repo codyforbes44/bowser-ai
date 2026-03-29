@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Breadcrumb } from '../types';
 import { parseBreadcrumb, breadcrumbToDisplay } from '../utils/urlHelpers';
 import { getStorageItem, setStorageItem } from '../utils/storage';
+import { parseOmniboxInput } from '../utils/navigation';
 
 interface AddressBarProps {
   breadcrumb: Breadcrumb;
@@ -128,36 +129,22 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     };
   }, [menuOpen]);
 
-  const navigateWithQuery = (query: string) => {
-    if (isBrowserMode) {
-      let urlToTest = query;
-      if (!/^https?:\/\//i.test(urlToTest)) {
-        if (urlToTest.includes(' ')) {
-          setError("Please enter a valid URL without spaces.");
-          return false;
-        }
-        urlToTest = `https://${urlToTest}`;
-      }
-      
-      try {
-        const parsed = new URL(urlToTest);
-        if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
-          setError("Please enter a valid domain name.");
-          return false;
-        }
-        setError(null);
-        addToHistory(urlToTest);
-        onNavigate('create', urlToTest);
-        return true;
-      } catch (err) {
-        setError("Invalid URL format. Please check and try again.");
-        return false;
-      }
-    } else {
-      setError(null);
-      addToHistory(query);
-      const edited = parseBreadcrumb(query);
+  // Delegate all input parsing to the navigation utility
+  const navigateWithQuery = (query: string): boolean => {
+    const currentKind = isBrowserMode ? 'web' as const : 'ai' as const;
+    const decision = parseOmniboxInput(query, currentKind);
 
+    if (decision.error) {
+      setError(decision.error);
+      return false;
+    }
+
+    setError(null);
+    addToHistory(decision.url || query);
+
+    // For AI mode, determine create vs edit based on breadcrumb context
+    if (decision.kind === 'ai' || (!isBrowserMode && decision.kind !== 'web')) {
+      const edited = parseBreadcrumb(query);
       if (!edited.page && breadcrumb.page) {
         onNavigate('create', edited.sitename);
       } else if (edited.sitename !== breadcrumb.sitename) {
@@ -169,6 +156,10 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       }
       return true;
     }
+
+    // Web URLs and system pages
+    onNavigate('create', decision.url);
+    return true;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -274,7 +265,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             </div>
           )}
           {error && (
-            <div className="absolute top-full left-0 mt-1 bg-[#2a1010] text-red-400 text-xs px-3 py-1.5 rounded-md border border-red-500/20 whitespace-nowrap z-50 shadow-lg">
+            <div className="absolute top-full left-0 mt-1 bg-[#2a1010] text-red-400 text-xs px-3 py-1.5 rounded-md border border-red-500/20 whitespace-nowrap z-50 shadow-lg" role="alert">
               {error}
             </div>
           )}
@@ -301,6 +292,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                       removeFromHistory(item);
                     }}
                     title="Remove from history"
+                    aria-label={`Remove ${item} from search history`}
                   >
                     <span className="material-symbols-outlined text-[14px]">close</span>
                   </button>
@@ -330,6 +322,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
           role="switch"
           aria-checked={isBrowserMode}
+          aria-label="Toggle between AI and Web mode"
           style={{ width: '28px', height: '16px' }}
         >
           <div className="toggle-thumb" style={{ width: '12px', height: '12px', top: '2px', left: '2px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />

@@ -4,11 +4,16 @@ export interface NavigationDecision {
   kind: TabKind;
   url: string;
   query?: string;
+  error?: string;
 }
 
 export function parseOmniboxInput(input: string, currentKind: TabKind): NavigationDecision {
   const trimmed = input.trim();
   
+  if (!trimmed) {
+    return { kind: currentKind, url: '', error: 'Please enter a URL or search query.' };
+  }
+
   if (trimmed.startsWith('bowser://')) {
     const page = trimmed.replace('bowser://', '').toLowerCase();
     if (page === 'newtab') return { kind: 'new-tab', url: 'bowser://newtab' };
@@ -18,6 +23,12 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
     return { kind: 'new-tab', url: 'bowser://newtab' };
   }
 
+  // In web mode, validate as URL
+  if (currentKind === 'web') {
+    return validateWebUrl(trimmed);
+  }
+
+  // Check if input looks like a URL regardless of mode
   const isUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i.test(trimmed);
   
   if (isUrl) {
@@ -30,4 +41,24 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
   }
 
   return { kind: 'web', url: `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`, query: trimmed };
+}
+
+function validateWebUrl(input: string): NavigationDecision {
+  let urlStr = input;
+  if (!/^https?:\/\//i.test(urlStr)) {
+    if (urlStr.includes(' ')) {
+      return { kind: 'web', url: input, error: 'Please enter a valid URL without spaces.' };
+    }
+    urlStr = `https://${urlStr}`;
+  }
+
+  try {
+    const parsed = new URL(urlStr);
+    if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
+      return { kind: 'web', url: input, error: 'Please enter a valid domain name.' };
+    }
+    return { kind: 'web', url: urlStr };
+  } catch {
+    return { kind: 'web', url: input, error: 'Invalid URL format. Please check and try again.' };
+  }
 }

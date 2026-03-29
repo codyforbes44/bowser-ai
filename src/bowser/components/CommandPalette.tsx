@@ -71,7 +71,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   let flatIndex = -1;
 
   return (
-    <div className="command-palette-backdrop" onClick={onClose}>
+    <div className="command-palette-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Command palette">
       <div className="command-palette" onClick={e => e.stopPropagation()}>
         <div className="command-palette-input-wrapper">
           <span className="material-symbols-outlined command-palette-search-icon">search</span>
