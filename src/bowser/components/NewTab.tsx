@@ -7,8 +7,6 @@ import { getRecentPrompts } from '../store/session';
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
   onWebNavigate: (query: string) => void;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   bookmarks: Bookmark[];
   onNavigateToBookmark: (url: string, tabKind: TabKind) => void;
   onOpenBookmarks: () => void;
@@ -20,8 +18,6 @@ interface NewTabProps {
 export const NewTab: React.FC<NewTabProps> = ({
   onCreatePage,
   onWebNavigate,
-  isGrounded,
-  onToggleGrounding,
   bookmarks,
   onNavigateToBookmark,
   onOpenBookmarks,
@@ -75,8 +71,6 @@ export const NewTab: React.FC<NewTabProps> = ({
             setPrompt={setPrompt}
             onSubmit={handleSubmit}
             isBrowserMode={localBrowserMode}
-            isGrounded={isGrounded}
-            onToggleGrounding={onToggleGrounding}
             onToggleBrowserMode={() => setLocalBrowserMode(prev => !prev)}
             canInstall={canInstall}
             onInstall={triggerInstall}
@@ -90,8 +84,6 @@ export const NewTab: React.FC<NewTabProps> = ({
             setPrompt={setPrompt}
             onSubmit={handleSubmit}
             isBrowserMode={localBrowserMode}
-            isGrounded={isGrounded}
-            onToggleGrounding={onToggleGrounding}
             onToggleBrowserMode={() => setLocalBrowserMode(prev => !prev)}
             topBookmarks={topBookmarks}
             bookmarks={bookmarks}
@@ -116,8 +108,6 @@ const FirstRunLanding: React.FC<{
   setPrompt: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isBrowserMode?: boolean;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   onToggleBrowserMode?: () => void;
   canInstall: boolean;
   onInstall: () => void;
@@ -125,8 +115,8 @@ const FirstRunLanding: React.FC<{
   onOpenSettings?: () => void;
   onWebNavigate: (query: string) => void;
 }> = ({
-  prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
-  onToggleGrounding, onToggleBrowserMode, canInstall, onInstall,
+  prompt, setPrompt, onSubmit, isBrowserMode,
+  onToggleBrowserMode, canInstall, onInstall,
   onShowOnboarding, onOpenSettings, onWebNavigate,
 }) => (
   <>
@@ -157,8 +147,6 @@ const FirstRunLanding: React.FC<{
       setPrompt={setPrompt}
       onSubmit={onSubmit}
       isBrowserMode={isBrowserMode}
-      isGrounded={isGrounded}
-      onToggleGrounding={onToggleGrounding}
       onToggleBrowserMode={onToggleBrowserMode}
     />
 
@@ -220,8 +208,6 @@ const ReturningUserView: React.FC<{
   setPrompt: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isBrowserMode?: boolean;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   onToggleBrowserMode?: () => void;
   topBookmarks: import('../types').Bookmark[];
   bookmarks: import('../types').Bookmark[];
@@ -233,8 +219,8 @@ const ReturningUserView: React.FC<{
   formatTime: (ts: number) => string;
   onWebNavigate: (query: string) => void;
 }> = ({
-  prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
-  onToggleGrounding, onToggleBrowserMode, topBookmarks, bookmarks,
+  prompt, setPrompt, onSubmit, isBrowserMode,
+  onToggleBrowserMode, topBookmarks, bookmarks,
   onNavigateToBookmark, onOpenBookmarks, recentPrompts, recentActivity,
   onCreatePage, formatTime, onWebNavigate,
 }) => (
@@ -255,8 +241,6 @@ const ReturningUserView: React.FC<{
       setPrompt={setPrompt}
       onSubmit={onSubmit}
       isBrowserMode={isBrowserMode}
-      isGrounded={isGrounded}
-      onToggleGrounding={onToggleGrounding}
       onToggleBrowserMode={onToggleBrowserMode}
     />
 
@@ -373,12 +357,10 @@ interface OmniboxProps {
   setPrompt: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isBrowserMode?: boolean;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   onToggleBrowserMode?: () => void;
 }
 
-const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, isGrounded, onToggleGrounding, onToggleBrowserMode }, ref) => (
+const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, onToggleBrowserMode }, ref) => (
   <div ref={ref}>
     <form onSubmit={onSubmit} className="newtab-form">
       <div className="newtab-input-row">
@@ -411,19 +393,6 @@ const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPro
         </button>
       )}
 
-      <button
-        onClick={onToggleGrounding}
-        className="bw-chip"
-        style={{
-          borderColor: isGrounded ? 'var(--bw-accent)' : undefined,
-          color: isGrounded ? 'var(--bw-accent)' : undefined,
-          background: isGrounded ? 'var(--bw-accent-subtle)' : undefined,
-        }}
-        title={isGrounded ? 'Live data enabled' : 'Enable live data'}
-      >
-        <span className="material-symbols-outlined icon-sm" aria-hidden="true">language</span>
-        Live data {isGrounded ? 'on' : 'off'}
-      </button>
     </div>
   </div>
 ));
