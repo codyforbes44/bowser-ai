@@ -1,49 +1,32 @@
 
 
-# Make Bowser a Best-in-Class Installable PWA
+# Rename Remaining Flash-Lite References and Clean Up AddressBar Storage
 
-## Overview
-Add PWA support so Bowser can be installed to the home screen on any device, with proper branding, icons, theme colors, and offline awareness. Per Lovable guidelines, we'll use `vite-plugin-pwa` with safeguards to avoid preview/iframe issues.
+## What's already done
+The codebase is already well-structured: tab kinds are typed, navigation parsing is in `utils/navigation.ts`, bookmarks and history are in `store/` modules, and the storage adapter in `utils/storage.ts` already handles migration from `flash-lite-*` to `bowser-*` keys.
 
-**Important**: PWA install and offline features will only work on the **published** site, not in the Lovable editor preview.
+## What still needs to change
 
-## Steps
+There are exactly **3 files** with leftover `flash-lite` references:
 
-### 1. Install `vite-plugin-pwa`
-Add `vite-plugin-pwa` as a dependency.
+### 1. `src/bowser/components/AddressBar.tsx`
+The address bar uses raw `localStorage` calls with `flash-lite-current-input` and `flash-lite-history` keys instead of the storage adapter. Refactor to use `getStorageItem` / `setStorageItem` from `utils/storage.ts`, which will automatically migrate old keys and use the `bowser-` prefix.
 
-### 2. Create PWA icons
-Generate multiple icon sizes in `public/`:
-- `pwa-192x192.png` and `pwa-512x512.png` (maskable + any)
-- Use a Bowser-themed icon (browser compass/paw icon in the app's blue accent color)
+### 2. `src/bowser/components/Sandbox.tsx`
+- Rename `id="flash-lite-api"` to `id="bowser-api"` in the sandbox shell HTML
+- Rename `data-flash-lite-font` attribute to `data-bowser-font` (used for injected Google Font links)
 
-### 3. Update `vite.config.ts`
-Add `VitePWA` plugin with:
-- `registerType: "autoUpdate"`
-- `devOptions: { enabled: false }` (no SW in dev)
-- `workbox.navigateFallbackDenylist: [/^\/~oauth/]`
-- Full `manifest` object: name "Bowser", short_name "Bowser", theme_color `#1a1a2e`, background_color `#1a1a2e`, display `standalone`, icons array
+These are internal iframe attributes with no external dependencies — safe to rename directly.
 
-### 4. Add iframe/preview guard in `src/main.tsx`
-Prevent service worker registration and unregister existing SWs when running inside an iframe or on a Lovable preview domain.
+### 3. `src/bowser/utils/storage.ts`
+Already correct — the `OLD_STORAGE_PREFIX = 'flash-lite-'` stays as-is since it powers the migration fallback. No change needed.
 
-### 5. Update `index.html`
-- Set `<title>` to "Bowser"
-- Add `<meta name="theme-color" content="#1a1a2e">`
-- Add `<link rel="apple-touch-icon" href="/pwa-192x192.png">`
-- Add `<meta name="apple-mobile-web-app-capable" content="yes">`
-- Add `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
+## Summary of changes
 
-### 6. Create an install prompt component
-Build a small `InstallPrompt` component that:
-- Listens for the `beforeinstallprompt` event
-- Shows a styled banner/button inviting the user to install Bowser
-- Dismisses after install or user decline
-- Integrates into the New Tab page or as a subtle bar
+| File | Change |
+|------|--------|
+| `AddressBar.tsx` | Replace 6 raw `localStorage` calls with `getStorageItem`/`setStorageItem` using keys `'current-input'` and `'search-history'` |
+| `Sandbox.tsx` | Rename `flash-lite-api` → `bowser-api`, `data-flash-lite-font` → `data-bowser-font` (3 occurrences) |
 
-## Technical notes
-- No offline-first caching of external sites (the browser loads live URLs in iframes)
-- Precache only the app shell (HTML, JS, CSS, icons)
-- The manifest `start_url` will be `/`
-- `display: standalone` removes browser chrome for a native feel
+No behavioral changes. All existing features preserved. Build-safe string replacements only.
 
