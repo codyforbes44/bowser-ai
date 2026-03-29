@@ -154,6 +154,13 @@
 .tab:hover { background: #303136; }
 .active-tab { background: #44454a; }
 .active-tab:hover { background: #44454a; }
+.active-tab.tab-accent-ai { border-top: 2px solid #8ab4f8; }
+.active-tab.tab-accent-web { border-top: 2px solid #81c995; }
+.active-tab.tab-accent-system { border-top: 2px solid #9aa0a6; }
+.tab-kind-icon { font-size: 14px !important; color: #9aa0a6; flex-shrink: 0; }
+.active-tab .tab-kind-icon { color: #e8eaed; }
+.active-tab.tab-accent-ai .tab-kind-icon { color: #8ab4f8; }
+.active-tab.tab-accent-web .tab-kind-icon { color: #81c995; }
 .tab-title {
   font-size: 12px; color: #9aa0a6; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; font-family: system-ui, -apple-system, sans-serif;
