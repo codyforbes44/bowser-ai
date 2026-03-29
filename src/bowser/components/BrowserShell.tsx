@@ -341,6 +341,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   // Desktop tab bar (top)
   const desktopTabBar = (
     <div className="tab-bar" role="toolbar" aria-label="Tab bar">
+      <img src="/pwa-192x192.png" alt="Bowser" className="w-5 h-5 rounded flex-shrink-0 ml-2 mr-1 self-center" style={{ opacity: 0.85 }} />
       <div className="tab-list" role="tablist" aria-label="Open tabs">
         {sortedTabs.map(item => renderTab(item, false))}
         <button className="tab-new" onClick={onNewTab} title="New Tab" aria-label="Open new tab">
@@ -389,6 +390,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   // Mobile bottom tab bar
   const mobileTabBar = (
     <div className="mobile-tab-bar" role="tablist" aria-label="Tabs">
+      <img src="/pwa-192x192.png" alt="Bowser" className="w-5 h-5 rounded flex-shrink-0 ml-1.5 mr-0.5 self-center" style={{ opacity: 0.85 }} />
       {visibleMobileTabs.map(item => renderTab(item, true))}
       {overflowCount > 0 && (
         <button
