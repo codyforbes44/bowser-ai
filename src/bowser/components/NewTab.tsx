@@ -101,6 +101,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             recentActivity={recentActivity}
             onCreatePage={onCreatePage}
             formatTime={formatTime}
+            onWebNavigate={onWebNavigate}
           />
         )}
       </div>
@@ -230,11 +231,12 @@ const ReturningUserView: React.FC<{
   recentActivity: import('../types').HistoryEntry[];
   onCreatePage: (prompt: string) => void;
   formatTime: (ts: number) => string;
+  onWebNavigate: (query: string) => void;
 }> = ({
   prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
   onToggleGrounding, onToggleBrowserMode, topBookmarks, bookmarks,
   onNavigateToBookmark, onOpenBookmarks, recentPrompts, recentActivity,
-  onCreatePage, formatTime,
+  onCreatePage, formatTime, onWebNavigate,
 }) => (
   <>
     {/* Wordmark */}
