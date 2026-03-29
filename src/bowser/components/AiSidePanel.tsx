@@ -25,12 +25,7 @@ const WEB_TAB_ACTIONS: { id: AnalysisAction; label: string; icon: string }[] = [
 ];
 
 export const AiSidePanel: React.FC<AiSidePanelProps> = ({
-  isOpen,
-  onClose,
-  pageHtml,
-  tabKind,
-  webTabUrl,
-  webTabTitle,
+  isOpen, onClose, pageHtml, tabKind, webTabUrl, webTabTitle,
 }) => {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,49 +42,28 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   const canAnalyzeWeb = isWebTab && !!webTabUrl;
   const canAnalyze = canAnalyzeAi || canAnalyzeWeb;
 
-  useEffect(() => {
-    if (!isOpen) {
-      abortRef.current?.abort();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (loading && contentRef.current) {
-      contentRef.current.scrollTop = contentRef.current.scrollHeight;
-    }
-  }, [response, loading]);
+  useEffect(() => { if (!isOpen) abortRef.current?.abort(); }, [isOpen]);
+  useEffect(() => { if (loading && contentRef.current) contentRef.current.scrollTop = contentRef.current.scrollHeight; }, [response, loading]);
 
   const handleNewConversation = useCallback(() => {
     abortRef.current?.abort();
-    setResponse('');
-    setError(null);
-    setActiveAction(null);
-    setQuestion('');
-    setLoading(false);
+    setResponse(''); setError(null); setActiveAction(null); setQuestion(''); setLoading(false);
   }, []);
 
   const runAction = useCallback(async (action: AnalysisAction, q?: string) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-
-    setActiveAction(action);
-    setResponse('');
-    setError(null);
-    setLoading(true);
+    setActiveAction(action); setResponse(''); setError(null); setLoading(true);
 
     try {
-      let stream: AsyncGenerator<string>;
+      const stream = (isWebTab && webTabUrl)
+        ? streamWebTabAnalysis(webTabUrl, webTabTitle || '', action, q, controller.signal)
+        : pageHtml
+          ? streamTextAnalysis(pageHtml, action, q, controller.signal)
+          : null;
 
-      if (isWebTab && webTabUrl) {
-        stream = streamWebTabAnalysis(webTabUrl, webTabTitle || '', action, q, controller.signal);
-      } else if (pageHtml) {
-        stream = streamTextAnalysis(pageHtml, action, q, controller.signal);
-      } else {
-        setError('No content available to analyze.');
-        setLoading(false);
-        return;
-      }
+      if (!stream) { setError('No content available.'); setLoading(false); return; }
 
       let fullText = '';
       for await (const chunk of stream) {
@@ -98,136 +72,80 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
         setResponse(fullText);
       }
     } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        setError('Something went wrong. Please try again.');
-      }
+      if (e?.name !== 'AbortError') setError('Something went wrong. Please try again.');
     } finally {
-      if (abortRef.current === controller) {
-        setLoading(false);
-      }
+      if (abortRef.current === controller) setLoading(false);
     }
   }, [pageHtml, isWebTab, webTabUrl, webTabTitle]);
 
-  const handleStop = useCallback(() => {
-    abortRef.current?.abort();
-    setLoading(false);
-  }, []);
+  const handleStop = useCallback(() => { abortRef.current?.abort(); setLoading(false); }, []);
 
   const handleAsk = (e: React.FormEvent) => {
     e.preventDefault();
-    if (question.trim()) {
-      runAction('ask', question.trim());
-    }
+    if (question.trim()) runAction('ask', question.trim());
   };
 
   if (!isOpen) return null;
 
   const actions = isWebTab ? WEB_TAB_ACTIONS : AI_TAB_ACTIONS;
-  const askPlaceholder = isWebTab
-    ? 'Ask about this topic…'
-    : 'Ask about this page…';
 
   return (
-    <aside className="side-panel" role="complementary" aria-label="Page assistant">
+    <aside className="side-panel" role="complementary" aria-label="Assistant">
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
-          <span className="text-[13px] font-semibold" style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.01em' }}>
-            Assistant
-          </span>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.01em' }}>Assistant</span>
         </div>
         <div className="flex items-center gap-1">
           {(response || activeAction) && (
-            <button
-              onClick={handleNewConversation}
-              className="p-1 rounded transition-colors"
-              style={{ color: 'var(--bw-text-quaternary)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-              aria-label="New conversation"
-              title="New conversation"
-            >
-              <span className="material-symbols-outlined text-base" aria-hidden="true">refresh</span>
+            <button onClick={handleNewConversation} className="p-1 rounded" style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="New conversation" title="New conversation">
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden="true">refresh</span>
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="p-1 rounded transition-colors"
-            style={{ color: 'var(--bw-text-quaternary)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-            aria-label="Close panel"
-          >
-            <span className="material-symbols-outlined text-base" aria-hidden="true">close</span>
+          <button onClick={onClose} className="p-1 rounded" style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Close panel">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden="true">close</span>
           </button>
         </div>
       </div>
 
       {/* Body */}
-      {isSystemTab ? (
-        <EmptyState
-          icon="web"
-          title="Nothing to analyze"
-          description="Navigate to a page first, then use the assistant."
-        />
-      ) : !canAnalyze ? (
-        <EmptyState
-          icon={isWebTab ? 'public' : 'web'}
-          title={isWebTab ? 'No page loaded' : 'No content yet'}
-          description={isWebTab
-            ? 'Load a website to ask questions about it.'
-            : 'Generate a page first, then use the assistant.'}
-        />
+      {isSystemTab || !canAnalyze ? (
+        <div className="side-panel-empty" role="status">
+          <span className="material-symbols-outlined mb-2" style={{ fontSize: '24px', color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">chat_bubble_outline</span>
+          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>
+            {isSystemTab ? 'Nothing to discuss' : 'Open a page first'}
+          </p>
+          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
+            Open a page and ask a question, or start a conversation.
+          </p>
+        </div>
       ) : (
         <>
-          {/* Web tab disclaimer */}
           {isWebTab && !response && !loading && (
-            <div className="px-3 py-2 mx-3 mt-2 rounded-md" style={{ background: 'var(--bw-accent-muted)', border: '1px solid var(--bw-border-subtle)' }}>
+            <div className="px-3 py-2 mx-3 mt-2 rounded" style={{ background: 'var(--bw-accent-muted)', border: '1px solid var(--bw-border-subtle)', borderRadius: 'var(--bw-radius-sm)' }}>
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-tertiary)' }}>
                 Bowser can discuss this topic based on general knowledge. It cannot read the live page content.
               </p>
             </div>
           )}
 
-          {/* Action chips */}
           <div className="side-panel-actions" role="toolbar" aria-label="Quick actions">
-            {actions.map(action => (
-              <button
-                key={action.id}
-                onClick={() => runAction(action.id)}
-                disabled={loading}
-                className={`side-panel-action ${activeAction === action.id ? 'active' : ''}`}
-                aria-pressed={activeAction === action.id}
-              >
-                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">{action.icon}</span>
-                <span className="text-[11px]">{action.label}</span>
+            {actions.map(a => (
+              <button key={a.id} onClick={() => runAction(a.id)} disabled={loading} className={`side-panel-action ${activeAction === a.id ? 'active' : ''}`} aria-pressed={activeAction === a.id}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">{a.icon}</span>
+                <span className="text-[11px]">{a.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Ask input */}
           <form onSubmit={handleAsk} className="side-panel-ask">
-            <input
-              type="text"
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              placeholder={askPlaceholder}
-              className="side-panel-ask-input"
-              disabled={loading}
-              aria-label={askPlaceholder}
-            />
-            <button
-              type="submit"
-              disabled={loading || !question.trim()}
-              className="side-panel-ask-btn"
-              aria-label="Send"
-            >
-              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">send</span>
+            <input type="text" value={question} onChange={e => setQuestion(e.target.value)} placeholder={isWebTab ? 'Ask about this topic…' : 'Ask about this page…'} className="side-panel-ask-input" disabled={loading} aria-label="Ask a question" />
+            <button type="submit" disabled={loading || !question.trim()} className="side-panel-ask-btn" aria-label="Send">
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }} aria-hidden="true">send</span>
             </button>
           </form>
 
-          {/* Response area */}
           {(response || loading || error) ? (
             <div className="side-panel-response" ref={contentRef} aria-live="polite">
               {loading && !response && (
@@ -237,20 +155,11 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                   <div className="bw-shimmer h-3 w-3/5" />
                 </div>
               )}
-              {error && !response && (
-                <div className="text-[13px] py-2" style={{ color: 'var(--bw-red)' }} role="alert">{error}</div>
-              )}
+              {error && !response && <div className="text-[12px] py-2" style={{ color: 'var(--bw-red)' }} role="alert">{error}</div>}
               <div className={`side-panel-text ${loading && response ? 'streaming-cursor' : ''}`}>{response}</div>
               {loading && response && (
-                <button
-                  onClick={handleStop}
-                  className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
-                  style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-                  aria-label="Stop generating"
-                >
-                  <span className="material-symbols-outlined text-[12px]" aria-hidden="true">stop</span>
+                <button onClick={handleStop} className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Stop generating">
+                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">stop</span>
                   Stop
                 </button>
               )}
@@ -258,7 +167,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           ) : (
             <div className="side-panel-hint">
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
-                {isWebTab ? 'Ask about this website or choose an action above.' : 'Choose an action or ask a question about this page.'}
+                Choose an action or ask a question.
               </p>
             </div>
           )}
@@ -267,12 +176,3 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
     </aside>
   );
 };
-
-/** Shared empty state component */
-const EmptyState: React.FC<{ icon: string; title: string; description: string }> = ({ icon, title, description }) => (
-  <div className="side-panel-empty" role="status">
-    <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">{icon}</span>
-    <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>{title}</p>
-    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>{description}</p>
-  </div>
-);
