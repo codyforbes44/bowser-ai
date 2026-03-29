@@ -139,6 +139,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   viewportRef,
   webHistoryPosition,
   webHistoryTotal,
+  webHistoryUrls,
+  onWebHistoryNavigate,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
