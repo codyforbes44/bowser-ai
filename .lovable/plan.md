@@ -1,28 +1,24 @@
 
 
-## Generate Bowser PWA Icons
+## Rename "AI" to "Create" and Reverse Toggle Order
 
-### What
-Create proper branded PWA icons (`pwa-192x192.png` and `pwa-512x512.png`) featuring the Bowser logo — a stylized "B" on the app's indigo accent background (`#6366f1`), matching the dark theme design system.
+### What Changes
+The mode toggle currently reads **AI ⟵toggle⟶ Web** (left-to-right). Change to **Web ⟵toggle⟶ Create** — swapping label positions and reversing the toggle direction so "Web" is left/off and "Create" is right/on.
 
-### How
+### Semantics After Change
+- Toggle **off** (thumb left) = Web mode (`isBrowserMode: true`)
+- Toggle **on** (thumb right) = Create mode (`isBrowserMode: false`, the AI/generate mode)
 
-**Generate icons via script** using HTML Canvas (Node.js `canvas` package or inline SVG-to-PNG conversion):
+This inverts the current toggle direction: `isBrowserMode` currently maps to "active/on" — after the change, `!isBrowserMode` maps to "active/on".
 
-- **Background**: Rounded-corner square filled with `#6366f1` (the `--bw-accent` color)
-- **Logo mark**: A bold, geometric white "B" letterform centered on the icon — clean, modern, matching the app's minimal aesthetic
-- **Two sizes**: 192x192 and 512x512, written to `public/pwa-192x192.png` and `public/pwa-512x512.png` (replacing the current placeholder files)
+### Files to Edit
 
-Also update `public/favicon.ico` reference in `index.html` to point to the new `pwa-192x192.png` for consistency (this is already done from a previous edit).
+**`src/bowser/components/AddressBar.tsx`**
+1. **Desktop toggle** (lines 438-458): Swap label positions — "Web" on left, "Create" on right. Flip `active` class and thumb transform to use `!isBrowserMode`. Update highlight colors accordingly.
+2. **Mobile dropdown** (lines 390-404): Change `'AI mode'` text to `'Create mode'`. Flip toggle active state.
+3. **Tooltip/aria** (lines 445-446): Update "AI" references to "Create".
+4. **Placeholder text** (line 265): Change `'Ask anything…'` to `'Create anything…'` for Create mode.
 
-### Technical Details
-
-- Use a Python script with `Pillow` to draw the icon: rounded-rect background + bold sans-serif "B" character
-- Corner radius: ~20% of icon size (38px for 192, 102px for 512) for modern app icon feel
-- The "B" will be rendered in white (`#FFFFFF`) using a bold font, sized to ~60% of the icon dimension
-- Both files overwrite the existing placeholders in `public/`
-
-### Files Changed
-- `public/pwa-192x192.png` — new branded icon
-- `public/pwa-512x512.png` — new branded icon
+**`src/bowser/BowserApp.tsx`**
+- Line 241: Update command palette label from `'Toggle AI / Web Mode'` to `'Toggle Create / Web Mode'`.
 
