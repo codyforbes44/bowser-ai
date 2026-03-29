@@ -7,6 +7,7 @@ import { BookmarksTab } from './components/BookmarksTab';
 import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { CommandPalette } from './components/CommandPalette';
 import { AiSidePanel } from './components/AiSidePanel';
+import { OnboardingModal, hasSeenOnboarding, markOnboardingComplete } from './components/OnboardingModal';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
 import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay, parseBreadcrumb } from './utils/urlHelpers';
@@ -24,6 +25,7 @@ const BowserApp: React.FC = () => {
   const [isGrounded, setIsGrounded] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
 
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
@@ -169,7 +171,7 @@ const BowserApp: React.FC = () => {
       updateTabById(tabId, tab => ({
         ...tab,
         breadcrumb: fallbackBreadcrumb,
-        generatedContent: `<html><head><title>Error</title><meta name="color-scheme" content="dark"></head><body style="font-family: system-ui, sans-serif; padding: 40px; background: #111; color: #e8eaed;"><h1 style="font-size: 18px; margin-bottom: 8px;">Something went wrong</h1><p style="color: #999; font-size: 14px;">The page couldn't be generated. Please try again.</p></body></html>`,
+        generatedContent: `<html><head><title>Page unavailable</title><meta name="color-scheme" content="dark"></head><body style="font-family: system-ui, sans-serif; padding: 40px; background: #111; color: #e8eaed;"><h1 style="font-size: 18px; margin-bottom: 8px;">This page couldn't be generated</h1><p style="color: #999; font-size: 14px;">Something went wrong while building this page. Try again or describe something different.</p></body></html>`,
       }));
     } finally {
       if (abortControllersRef.current.get(tabId) === controller) {
@@ -520,7 +522,7 @@ const BowserApp: React.FC = () => {
     { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
     { id: 'toggle-mode', label: 'Toggle AI / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
-    { id: 'toggle-grounding', label: 'Toggle Real-time Browsing', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
+    { id: 'toggle-grounding', label: 'Toggle Live Data', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
   ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage]);
 
   const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
@@ -611,7 +613,7 @@ const BowserApp: React.FC = () => {
             onNavigate={navigateToBookmarkUrl}
           />
         ) : activeTab.tabKind === 'settings' ? (
-          <SettingsTab onClearHistory={clearHistory} />
+          <SettingsTab onClearHistory={clearHistory} onShowOnboarding={() => setShowOnboarding(true)} />
         ) : activeTab.tabKind === 'web' ? (
           <iframe
             key={activeTab.navigationId}
@@ -634,6 +636,10 @@ const BowserApp: React.FC = () => {
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
         actions={commandActions}
+      />
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
       />
     </>
   );
