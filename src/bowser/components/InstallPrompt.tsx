@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 
-export const InstallPrompt: React.FC = () => {
+export const InstallPrompt = forwardRef<HTMLDivElement>((_props, ref) => {
   const { canInstall, triggerInstall, dismiss } = useInstallPrompt();
 
   if (!canInstall) return null;
 
   return (
+    <div ref={ref}
     <div
       className="flex items-center gap-3 px-4 py-2.5 mt-4 max-w-sm mx-auto"
       style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border)', borderRadius: 'var(--bw-radius-md)' }}
