@@ -8,7 +8,7 @@ import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/S
 import { CommandPalette } from './components/CommandPalette';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
-import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay } from './utils/urlHelpers';
+import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay, parseBreadcrumb } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
 import { parseOmniboxInput } from './utils/navigation';
