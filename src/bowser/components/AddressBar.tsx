@@ -27,6 +27,8 @@ interface AddressBarProps {
   onToggleSidePanel?: () => void;
   webHistoryPosition?: number;
   webHistoryTotal?: number;
+  webHistoryUrls?: string[];
+  onWebHistoryNavigate?: (index: number) => void;
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -52,6 +54,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onToggleSidePanel,
   webHistoryPosition,
   webHistoryTotal,
+  webHistoryUrls,
+  onWebHistoryNavigate,
 }) => {
   const displayText = breadcrumbToDisplay(breadcrumb);
   const [inputVal, setInputVal] = useState(() => {
@@ -69,6 +73,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     return getStorageItem<string[]>('search-history', []);
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const [historyDropdownOpen, setHistoryDropdownOpen] = useState(false);
+  const historyDropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -232,13 +238,66 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
           </button>
           {isBrowserMode && webHistoryTotal != null && webHistoryTotal > 1 && (
-            <span
-              className="text-[10px] font-medium select-none tabular-nums px-1"
-              style={{ color: 'var(--bw-text-quaternary)' }}
-              title={`Page ${webHistoryPosition} of ${webHistoryTotal}`}
-            >
-              {webHistoryPosition}/{webHistoryTotal}
-            </span>
+            <div className="relative" ref={historyDropdownRef}>
+              <button
+                className="text-[10px] font-medium select-none tabular-nums px-1.5 py-0.5 rounded transition-colors"
+                style={{ color: 'var(--bw-text-quaternary)', background: historyDropdownOpen ? 'var(--bw-bg-hover)' : 'transparent' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                onMouseLeave={e => { if (!historyDropdownOpen) e.currentTarget.style.background = 'transparent'; }}
+                onClick={() => setHistoryDropdownOpen(prev => !prev)}
+                title={`Page ${webHistoryPosition} of ${webHistoryTotal} — click to see history`}
+                aria-label="Show web history"
+                aria-haspopup="true"
+                aria-expanded={historyDropdownOpen}
+              >
+                {webHistoryPosition}/{webHistoryTotal}
+              </button>
+              {historyDropdownOpen && webHistoryUrls && onWebHistoryNavigate && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-1 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto min-w-[240px] max-w-[360px]"
+                  style={{
+                    background: 'var(--bw-bg-elevated)',
+                    border: '1px solid var(--bw-border)',
+                    boxShadow: 'var(--bw-shadow-lg)',
+                  }}
+                  role="listbox"
+                  aria-label="Web navigation history"
+                >
+                  {webHistoryUrls.map((url, idx) => {
+                    const isCurrent = idx === (webHistoryPosition! - 1);
+                    let label = url;
+                    try { label = new URL(url).hostname; } catch { /* use raw url */ }
+                    return (
+                      <button
+                        key={idx}
+                        className="w-full px-3 py-2 text-left text-[12px] flex items-center gap-2 transition-colors"
+                        style={{
+                          color: isCurrent ? 'var(--bw-accent)' : 'var(--bw-text-primary)',
+                          background: isCurrent ? 'var(--bw-bg-hover)' : 'transparent',
+                          fontWeight: isCurrent ? 600 : 400,
+                        }}
+                        onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = 'var(--bw-bg-hover)'; }}
+                        onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = 'transparent'; }}
+                        onClick={() => {
+                          onWebHistoryNavigate(idx);
+                          setHistoryDropdownOpen(false);
+                        }}
+                        role="option"
+                        aria-selected={isCurrent}
+                      >
+                        <span className="material-symbols-outlined text-[14px] flex-shrink-0" aria-hidden="true">
+                          {isCurrent ? 'arrow_right' : 'public'}
+                        </span>
+                        <span className="truncate">{label}</span>
+                        <span className="ml-auto text-[10px] flex-shrink-0" style={{ color: 'var(--bw-text-quaternary)' }}>
+                          {idx + 1}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
           <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Reload'} aria-label={isLoading ? 'Stop loading' : 'Reload page'}>
             <span className="material-symbols-outlined" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
