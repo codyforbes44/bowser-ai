@@ -41,7 +41,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
   const executeAction = useCallback((action: CommandAction) => {
     onClose();
-    // Delay to let modal close
     requestAnimationFrame(() => action.onExecute());
   }, [onClose]);
 
@@ -60,7 +59,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
     }
   };
 
-  // Scroll selected item into view
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
     el?.scrollIntoView({ block: 'nearest' });
@@ -71,10 +69,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   let flatIndex = -1;
 
   return (
-    <div className="command-palette-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Command palette">
+    <div
+      className="command-palette-backdrop"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+    >
       <div className="command-palette" onClick={e => e.stopPropagation()}>
         <div className="command-palette-input-wrapper">
-          <span className="material-symbols-outlined command-palette-search-icon">search</span>
+          <span className="material-symbols-outlined command-palette-search-icon" aria-hidden="true">search</span>
           <input
             ref={inputRef}
             type="text"
@@ -82,35 +86,42 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="command-palette-input"
-            placeholder="Type a command..."
-            aria-label="Command palette search"
+            placeholder="Type a command…"
+            aria-label="Search commands"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="command-palette-listbox"
+            aria-activedescendant={filtered[selectedIndex] ? `cp-item-${filtered[selectedIndex].id}` : undefined}
           />
-          <kbd className="command-palette-kbd">ESC</kbd>
+          <kbd className="command-palette-kbd" aria-hidden="true">ESC</kbd>
         </div>
-        <div className="command-palette-list" ref={listRef}>
+        <div className="command-palette-list" ref={listRef} id="command-palette-listbox" role="listbox">
           {filtered.length === 0 && (
-            <div className="command-palette-empty">No matching commands</div>
+            <div className="command-palette-empty" role="status">No matching commands</div>
           )}
           {sections.map(section => {
             const sectionItems = filtered.filter(a => a.section === section);
             return (
-              <div key={section}>
-                <div className="command-palette-section">{section}</div>
+              <div key={section} role="group" aria-label={section}>
+                <div className="command-palette-section" aria-hidden="true">{section}</div>
                 {sectionItems.map(action => {
                   flatIndex++;
                   const idx = flatIndex;
                   return (
                     <div
                       key={action.id}
+                      id={`cp-item-${action.id}`}
                       data-index={idx}
                       className={`command-palette-item ${idx === selectedIndex ? 'selected' : ''}`}
                       onClick={() => executeAction(action)}
                       onMouseEnter={() => setSelectedIndex(idx)}
+                      role="option"
+                      aria-selected={idx === selectedIndex}
                     >
-                      <span className="material-symbols-outlined command-palette-item-icon">{action.icon}</span>
+                      <span className="material-symbols-outlined command-palette-item-icon" aria-hidden="true">{action.icon}</span>
                       <span className="command-palette-item-label">{action.label}</span>
                       {action.shortcut && (
-                        <kbd className="command-palette-item-shortcut">{action.shortcut}</kbd>
+                        <kbd className="command-palette-item-shortcut" aria-label={`Shortcut: ${action.shortcut}`}>{action.shortcut}</kbd>
                       )}
                     </div>
                   );

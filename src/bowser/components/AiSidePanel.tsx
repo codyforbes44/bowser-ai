@@ -23,6 +23,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
 }) => {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<AnalysisAction | null>(null);
   const [question, setQuestion] = useState('');
   const abortRef = useRef<AbortController | null>(null);
@@ -53,6 +54,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
 
     setActiveAction(action);
     setResponse('');
+    setError(null);
     setLoading(true);
 
     try {
@@ -65,7 +67,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
-        setResponse(prev => prev + '\n\nAnalysis interrupted.');
+        setError('Analysis could not be completed. Please try again.');
       }
     } finally {
       if (abortRef.current === controller) {
@@ -89,11 +91,11 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="side-panel" aria-label="AI Page Analysis">
+    <aside className="side-panel" role="complementary" aria-label="AI page analysis">
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-accent)' }}>auto_awesome</span>
+          <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
           <span className="text-[13px] font-semibold" style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.01em' }}>
             Page Analysis
           </span>
@@ -104,24 +106,24 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           style={{ color: 'var(--bw-text-quaternary)' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-          aria-label="Close panel"
+          aria-label="Close side panel"
         >
-          <span className="material-symbols-outlined text-base">close</span>
+          <span className="material-symbols-outlined text-base" aria-hidden="true">close</span>
         </button>
       </div>
 
       {/* Body */}
       {isWebTab ? (
-        <div className="side-panel-empty">
-          <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }}>lock</span>
+        <div className="side-panel-empty" role="status">
+          <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">lock</span>
           <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>Content not accessible</p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
             Web pages in iframes can't be read due to browser security. Switch to AI mode to analyze generated content.
           </p>
         </div>
       ) : !canAnalyze ? (
-        <div className="side-panel-empty">
-          <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }}>web</span>
+        <div className="side-panel-empty" role="status">
+          <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">web</span>
           <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>No page to analyze</p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
             Generate or navigate to an AI page first.
@@ -130,15 +132,16 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       ) : (
         <>
           {/* Action buttons */}
-          <div className="side-panel-actions">
+          <div className="side-panel-actions" role="toolbar" aria-label="Analysis actions">
             {ACTIONS.map(action => (
               <button
                 key={action.id}
                 onClick={() => runAction(action.id)}
                 disabled={loading}
                 className={`side-panel-action ${activeAction === action.id ? 'active' : ''}`}
+                aria-pressed={activeAction === action.id}
               >
-                <span className="material-symbols-outlined text-[14px]">{action.icon}</span>
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">{action.icon}</span>
                 <span className="text-[12px]">{action.label}</span>
               </button>
             ))}
@@ -159,20 +162,23 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
               type="submit"
               disabled={loading || !question.trim()}
               className="side-panel-ask-btn"
-              aria-label="Ask"
+              aria-label="Submit question"
             >
-              <span className="material-symbols-outlined text-[14px]">send</span>
+              <span className="material-symbols-outlined text-[14px]" aria-hidden="true">send</span>
             </button>
           </form>
 
           {/* Response area */}
-          {(response || loading) ? (
-            <div className="side-panel-response" ref={contentRef}>
+          {(response || loading || error) ? (
+            <div className="side-panel-response" ref={contentRef} aria-live="polite">
               {loading && !response && (
                 <div className="flex items-center gap-2 py-2">
                   <div className="tab-spinner" aria-hidden="true" />
                   <span className="text-[12px]" style={{ color: 'var(--bw-text-quaternary)' }}>Analyzing…</span>
                 </div>
+              )}
+              {error && !response && (
+                <div className="text-[13px] py-2" style={{ color: 'var(--bw-red)' }} role="alert">{error}</div>
               )}
               <div className="side-panel-text">{response}</div>
               {loading && response && (
@@ -182,8 +188,9 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                   style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
+                  aria-label="Stop analysis"
                 >
-                  <span className="material-symbols-outlined text-[12px]">stop</span>
+                  <span className="material-symbols-outlined text-[12px]" aria-hidden="true">stop</span>
                   Stop
                 </button>
               )}
@@ -197,6 +204,6 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           )}
         </>
       )}
-    </div>
+    </aside>
   );
 };
