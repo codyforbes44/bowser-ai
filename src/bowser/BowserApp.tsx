@@ -320,6 +320,8 @@ const BowserApp: React.FC = () => {
           />
         }
         viewportRef={viewportRef}
+        webHistoryPosition={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistoryIndex + 1 : undefined}
+        webHistoryTotal={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistory.length : undefined}
       >
         {isNewTab ? (
           <NewTab
