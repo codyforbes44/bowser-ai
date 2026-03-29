@@ -74,10 +74,10 @@ export const NewTab: React.FC<NewTabProps> = ({
             prompt={prompt}
             setPrompt={setPrompt}
             onSubmit={handleSubmit}
-            isBrowserMode={isBrowserMode}
+            isBrowserMode={localBrowserMode}
             isGrounded={isGrounded}
             onToggleGrounding={onToggleGrounding}
-            onToggleBrowserMode={onToggleBrowserMode}
+            onToggleBrowserMode={() => setLocalBrowserMode(prev => !prev)}
             canInstall={canInstall}
             onInstall={triggerInstall}
             onShowOnboarding={onShowOnboarding}
@@ -88,10 +88,10 @@ export const NewTab: React.FC<NewTabProps> = ({
             prompt={prompt}
             setPrompt={setPrompt}
             onSubmit={handleSubmit}
-            isBrowserMode={isBrowserMode}
+            isBrowserMode={localBrowserMode}
             isGrounded={isGrounded}
             onToggleGrounding={onToggleGrounding}
-            onToggleBrowserMode={onToggleBrowserMode}
+            onToggleBrowserMode={() => setLocalBrowserMode(prev => !prev)}
             topBookmarks={topBookmarks}
             bookmarks={bookmarks}
             onNavigateToBookmark={onNavigateToBookmark}
