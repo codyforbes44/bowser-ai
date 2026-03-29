@@ -525,6 +525,17 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             </span>
           </button>
 
+          <button
+            onClick={onToggleGrounding}
+            className="nav-btn"
+            style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
+            title={isGrounded ? 'Live data on' : 'Live data off'}
+            aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
+            aria-pressed={isGrounded}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">language</span>
+          </button>
+
           {/* Mode toggle */}
           <button
             onClick={onToggleBrowserMode}
@@ -545,17 +556,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
               <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: !isBrowserMode ? 'translateX(12px)' : 'none' }} />
             </div>
             <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>Create</span>
-          </button>
-
-          <button
-            onClick={onToggleGrounding}
-            className="nav-btn"
-            style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
-            title={isGrounded ? 'Live data on' : 'Live data off'}
-            aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
-            aria-pressed={isGrounded}
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">language</span>
           </button>
 
           <div className="menu-container" ref={menuRef}>

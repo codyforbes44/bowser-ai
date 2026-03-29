@@ -82,6 +82,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             onInstall={triggerInstall}
             onShowOnboarding={onShowOnboarding}
             onOpenSettings={onOpenSettings}
+            onWebNavigate={onWebNavigate}
           />
         ) : (
           <ReturningUserView
@@ -100,6 +101,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             recentActivity={recentActivity}
             onCreatePage={onCreatePage}
             formatTime={formatTime}
+            onWebNavigate={onWebNavigate}
           />
         )}
       </div>
@@ -121,10 +123,11 @@ const FirstRunLanding: React.FC<{
   onInstall: () => void;
   onShowOnboarding?: () => void;
   onOpenSettings?: () => void;
+  onWebNavigate: (query: string) => void;
 }> = ({
   prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
   onToggleGrounding, onToggleBrowserMode, canInstall, onInstall,
-  onShowOnboarding, onOpenSettings,
+  onShowOnboarding, onOpenSettings, onWebNavigate,
 }) => (
   <>
     {/* Icon + Wordmark */}
@@ -158,6 +161,19 @@ const FirstRunLanding: React.FC<{
       onToggleGrounding={onToggleGrounding}
       onToggleBrowserMode={onToggleBrowserMode}
     />
+
+    <p className="text-[12px] mt-2" style={{ color: 'var(--bw-text-quaternary)' }}>
+      Or,{' '}
+      <button
+        onClick={() => onWebNavigate('https://google.com')}
+        className="underline transition-colors"
+        style={{ color: 'var(--bw-text-tertiary)' }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-tertiary)')}
+      >
+        continue to Google Search.
+      </button>
+    </p>
 
     {/* Feature highlights */}
     <div className="mt-10 w-full max-w-sm space-y-3">
@@ -215,11 +231,12 @@ const ReturningUserView: React.FC<{
   recentActivity: import('../types').HistoryEntry[];
   onCreatePage: (prompt: string) => void;
   formatTime: (ts: number) => string;
+  onWebNavigate: (query: string) => void;
 }> = ({
   prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
   onToggleGrounding, onToggleBrowserMode, topBookmarks, bookmarks,
   onNavigateToBookmark, onOpenBookmarks, recentPrompts, recentActivity,
-  onCreatePage, formatTime,
+  onCreatePage, formatTime, onWebNavigate,
 }) => (
   <>
     {/* Wordmark */}
@@ -242,6 +259,19 @@ const ReturningUserView: React.FC<{
       onToggleGrounding={onToggleGrounding}
       onToggleBrowserMode={onToggleBrowserMode}
     />
+
+    <p className="text-[12px] mt-2" style={{ color: 'var(--bw-text-quaternary)' }}>
+      Or,{' '}
+      <button
+        onClick={() => onWebNavigate('https://google.com')}
+        className="underline transition-colors"
+        style={{ color: 'var(--bw-text-tertiary)' }}
+        onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-tertiary)')}
+      >
+        continue to Google Search.
+      </button>
+    </p>
 
     <InstallPrompt />
 
