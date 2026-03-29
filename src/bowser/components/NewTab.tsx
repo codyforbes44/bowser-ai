@@ -82,6 +82,7 @@ export const NewTab: React.FC<NewTabProps> = ({
             onInstall={triggerInstall}
             onShowOnboarding={onShowOnboarding}
             onOpenSettings={onOpenSettings}
+            onWebNavigate={onWebNavigate}
           />
         ) : (
           <ReturningUserView
@@ -121,10 +122,11 @@ const FirstRunLanding: React.FC<{
   onInstall: () => void;
   onShowOnboarding?: () => void;
   onOpenSettings?: () => void;
+  onWebNavigate: (query: string) => void;
 }> = ({
   prompt, setPrompt, onSubmit, isBrowserMode, isGrounded,
   onToggleGrounding, onToggleBrowserMode, canInstall, onInstall,
-  onShowOnboarding, onOpenSettings,
+  onShowOnboarding, onOpenSettings, onWebNavigate,
 }) => (
   <>
     {/* Icon + Wordmark */}
