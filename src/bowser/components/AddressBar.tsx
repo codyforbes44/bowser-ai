@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Breadcrumb } from '../types';
 import { parseBreadcrumb, breadcrumbToDisplay } from '../utils/urlHelpers';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 
 interface AddressBarProps {
   breadcrumb: Breadcrumb;
@@ -45,50 +46,31 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 }) => {
   const displayText = breadcrumbToDisplay(breadcrumb);
   const [inputVal, setInputVal] = useState(() => {
-    try {
-      const stored = localStorage.getItem('flash-lite-current-input');
-      return stored !== null ? stored : displayText;
-    } catch {
-      return displayText;
-    }
+    const stored = getStorageItem<string | null>('current-input', null);
+    return stored !== null ? stored : displayText;
   });
   const [isFocused, setIsFocused] = useState(false);
   const [hasEdited, setHasEdited] = useState(() => {
-    try {
-      const stored = localStorage.getItem('flash-lite-current-input');
-      return stored !== null && stored !== displayText;
-    } catch {
-      return false;
-    }
+    const stored = getStorageItem<string | null>('current-input', null);
+    return stored !== null && stored !== displayText;
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('flash-lite-history');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    return getStorageItem<string[]>('search-history', []);
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('flash-lite-current-input', inputVal);
-    } catch {}
+    setStorageItem('current-input', inputVal);
   }, [inputVal]);
 
   const addToHistory = (query: string) => {
     setSearchHistory(prev => {
       const filtered = prev.filter(item => item !== query);
       const newHistory = [query, ...filtered].slice(0, 10);
-      try {
-        localStorage.setItem('flash-lite-history', JSON.stringify(newHistory));
-      } catch (e) {
-        console.warn('Failed to save history to localStorage', e);
-      }
+      setStorageItem('search-history', newHistory);
       return newHistory;
     });
   };
@@ -96,11 +78,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   const removeFromHistory = (query: string) => {
     setSearchHistory(prev => {
       const newHistory = prev.filter(item => item !== query);
-      try {
-        localStorage.setItem('flash-lite-history', JSON.stringify(newHistory));
-      } catch (e) {
-        console.warn('Failed to save history to localStorage', e);
-      }
+      setStorageItem('search-history', newHistory);
       return newHistory;
     });
   };

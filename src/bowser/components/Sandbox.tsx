@@ -15,7 +15,7 @@ const SHELL_HTML = `<!DOCTYPE html>
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src 'none'; frame-src 'none';">
     <script src="https://cdn.tailwindcss.com"><\/script>
-    <script id="flash-lite-api">
+    <script id="bowser-api">
       function getFormState() {
         const fields = [];
         const inputs = document.querySelectorAll('input, textarea, select');
@@ -89,12 +89,12 @@ const SHELL_HTML = `<!DOCTYPE html>
           document.body.setAttribute('style', e.data.bodyStyle || '');
           document.documentElement.style.colorScheme = e.data.colorScheme || 'light';
 
-          document.head.querySelectorAll('link[data-flash-lite-font]').forEach(el => el.remove());
+          document.head.querySelectorAll('link[data-bowser-font]').forEach(el => el.remove());
           (e.data.linkTags || []).forEach(href => {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = href;
-            link.setAttribute('data-flash-lite-font', 'true');
+            link.setAttribute('data-bowser-font', 'true');
             document.head.appendChild(link);
           });
 
