@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { BrowserShell } from './components/BrowserShell';
 import { Sandbox } from './components/Sandbox';
 import { NewTab } from './components/NewTab';
 import { HistoryTab } from './components/HistoryTab';
 import { BookmarksTab } from './components/BookmarksTab';
-import { SettingsTab } from './components/SettingsTab';
+import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
 import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay } from './utils/urlHelpers';
@@ -19,6 +19,8 @@ const BowserApp: React.FC = () => {
   
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
+
+  useEffect(() => { applyBowserTheme(getEffectiveTheme()); }, []);
 
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
