@@ -52,56 +52,103 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
   };
 
   return (
-    <div className="w-full h-full bowser-page-bg text-gray-200 p-8 overflow-y-auto">
-      <div className="max-w-5xl mx-auto">
+    <div className="w-full h-full overflow-y-auto" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-medium flex items-center gap-3">
-            <span className="material-symbols-outlined text-gray-400">bookmarks</span>
-            Bookmarks
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-lg" style={{ color: 'var(--bw-text-quaternary)' }}>bookmarks</span>
+            <h1 className="text-lg font-semibold tracking-tight" style={{ letterSpacing: '-0.02em' }}>Bookmarks</h1>
+          </div>
           <button
             onClick={() => setShowNewFolder(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#292a2d] hover:bg-[#35363a] border border-[#3c4043] rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+            style={{ color: 'var(--bw-text-secondary)', border: '1px solid var(--bw-border)', background: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <span className="material-symbols-outlined text-sm">create_new_folder</span>
-            New Folder
+            New folder
           </button>
         </div>
 
+        {/* Search */}
         <div className="mb-6 relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">search</span>
+          <span
+            className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base"
+            style={{ color: 'var(--bw-text-quaternary)' }}
+          >search</span>
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search bookmarks..."
-            className="w-full pl-10 pr-4 py-2.5 bg-[#292a2d] border border-[#3c4043] rounded-xl text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-blue-500/50 transition-colors"
+            placeholder="Search bookmarks…"
+            role="searchbox"
+            className="w-full pl-9 pr-4 py-2 text-sm outline-none transition-colors"
+            style={{
+              background: 'var(--bw-bg-input)',
+              border: '1px solid var(--bw-border)',
+              borderRadius: 'var(--bw-radius-md)',
+              color: 'var(--bw-text-primary)',
+            }}
           />
         </div>
 
+        {/* New folder form */}
         {showNewFolder && (
-          <form onSubmit={handleCreateFolder} className="mb-6 flex items-center gap-2 bg-[#292a2d] p-3 rounded-xl border border-[#3c4043]">
-            <span className="material-symbols-outlined text-gray-400">folder</span>
-            <input type="text" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Folder name..." className="bg-transparent border-none outline-none text-gray-200 flex-1 text-sm" autoFocus onKeyDown={e => { if (e.key === 'Escape') setShowNewFolder(false); }} />
-            <button type="submit" disabled={!newFolderName.trim()} className="text-blue-400 hover:text-blue-300 px-3 py-1 text-sm rounded-md hover:bg-blue-400/10 transition-colors disabled:opacity-40">Create</button>
-            <button type="button" onClick={() => setShowNewFolder(false)} className="text-gray-500 hover:text-gray-400 px-2 py-1 text-sm">Cancel</button>
+          <form
+            onSubmit={handleCreateFolder}
+            className="mb-6 flex items-center gap-2 p-3 rounded-lg"
+            style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border)' }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ color: 'var(--bw-text-quaternary)' }}>folder</span>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              placeholder="Folder name…"
+              className="bg-transparent border-none outline-none flex-1 text-sm"
+              style={{ color: 'var(--bw-text-primary)' }}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Escape') setShowNewFolder(false); }}
+            />
+            <button
+              type="submit"
+              disabled={!newFolderName.trim()}
+              className="text-xs font-medium px-3 py-1 rounded transition-colors disabled:opacity-30"
+              style={{ color: 'var(--bw-accent)' }}
+            >
+              Create
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowNewFolder(false)}
+              className="text-xs px-2 py-1"
+              style={{ color: 'var(--bw-text-quaternary)' }}
+            >
+              Cancel
+            </button>
           </form>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Sidebar: Folders */}
-          <div className="space-y-1">
+          <nav className="space-y-0.5">
             <button
               onClick={() => setActiveFolderId(null)}
-              className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                !activeFolderId && !isSearching ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:bg-[#292a2d]'
-              }`}
+              className="w-full text-left flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors"
+              style={{
+                background: !activeFolderId && !isSearching ? 'var(--bw-accent-subtle)' : 'transparent',
+                color: !activeFolderId && !isSearching ? 'var(--bw-accent)' : 'var(--bw-text-secondary)',
+              }}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">home</span>
-                All Bookmarks
+                All
               </span>
-              <span className="text-xs text-gray-600">{folderCounts['__root__'] || 0}</span>
+              <span className="text-[11px] tabular-nums" style={{ color: 'var(--bw-text-quaternary)' }}>
+                {folderCounts['__root__'] || 0}
+              </span>
             </button>
 
             {folders.map(folder => (
@@ -109,32 +156,56 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
                 {editingFolderId === folder.id ? (
                   <div className="flex items-center gap-1 px-2">
                     <input
-                      type="text" value={editFolderName} onChange={e => setEditFolderName(e.target.value)}
-                      className="flex-1 bg-[#202124] border border-[#3c4043] rounded px-2 py-1 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+                      type="text"
+                      value={editFolderName}
+                      onChange={e => setEditFolderName(e.target.value)}
+                      className="flex-1 px-2 py-1 text-sm outline-none rounded"
+                      style={{
+                        background: 'var(--bw-bg-input)',
+                        border: '1px solid var(--bw-border-focus)',
+                        color: 'var(--bw-text-primary)',
+                      }}
                       autoFocus
-                      onKeyDown={e => { if (e.key === 'Enter') handleRenameFolder(folder.id); if (e.key === 'Escape') setEditingFolderId(null); }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleRenameFolder(folder.id);
+                        if (e.key === 'Escape') setEditingFolderId(null);
+                      }}
                       onBlur={() => handleRenameFolder(folder.id)}
                     />
                   </div>
                 ) : (
                   <button
                     onClick={() => setActiveFolderId(folder.id)}
-                    className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      activeFolderId === folder.id && !isSearching ? 'bg-blue-500/15 text-blue-400' : 'text-gray-400 hover:bg-[#292a2d]'
-                    }`}
+                    className="w-full text-left flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors"
+                    style={{
+                      background: activeFolderId === folder.id && !isSearching ? 'var(--bw-accent-subtle)' : 'transparent',
+                      color: activeFolderId === folder.id && !isSearching ? 'var(--bw-accent)' : 'var(--bw-text-secondary)',
+                    }}
                   >
                     <span className="flex items-center gap-2 truncate">
                       <span className="material-symbols-outlined text-sm">folder</span>
                       <span className="truncate">{folder.name}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="text-xs text-gray-600">{folderCounts[folder.id] || 0}</span>
+                      <span className="text-[11px] tabular-nums" style={{ color: 'var(--bw-text-quaternary)' }}>
+                        {folderCounts[folder.id] || 0}
+                      </span>
                       <span className="opacity-0 group-hover:opacity-100 flex items-center transition-opacity">
-                        <button onClick={e => { e.stopPropagation(); setEditingFolderId(folder.id); setEditFolderName(folder.name); }} className="p-0.5 text-gray-500 hover:text-blue-400" title="Rename">
-                          <span className="material-symbols-outlined text-[14px]">edit</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingFolderId(folder.id); setEditFolderName(folder.name); }}
+                          className="p-0.5 transition-colors"
+                          style={{ color: 'var(--bw-text-quaternary)' }}
+                          title="Rename"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">edit</span>
                         </button>
-                        <button onClick={e => { e.stopPropagation(); onDeleteFolder(folder.id); if (activeFolderId === folder.id) setActiveFolderId(null); }} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
-                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); onDeleteFolder(folder.id); if (activeFolderId === folder.id) setActiveFolderId(null); }}
+                          className="p-0.5 transition-colors"
+                          style={{ color: 'var(--bw-text-quaternary)' }}
+                          title="Delete"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">delete</span>
                         </button>
                       </span>
                     </span>
@@ -142,49 +213,75 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
                 )}
               </div>
             ))}
-          </div>
+          </nav>
 
           {/* Main: Bookmark list */}
           <div className="md:col-span-3">
             {bookmarks.length === 0 ? (
               <div className="text-center mt-20">
-                <span className="material-symbols-outlined text-7xl mb-4 text-gray-600">bookmarks</span>
-                <p className="text-lg text-gray-400 mb-2">No bookmarks yet</p>
-                <p className="text-sm text-gray-600">Bookmark pages with ⭐ in the address bar to save them here.</p>
+                <span className="material-symbols-outlined text-5xl mb-3" style={{ color: 'var(--bw-text-quaternary)' }}>bookmarks</span>
+                <p className="text-sm font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>No bookmarks yet</p>
+                <p className="text-xs" style={{ color: 'var(--bw-text-quaternary)' }}>
+                  Click the ★ in the address bar to save pages here.
+                </p>
               </div>
             ) : displayedBookmarks.length === 0 ? (
               <div className="text-center mt-16">
-                <span className="material-symbols-outlined text-5xl mb-3 text-gray-600">
+                <span className="material-symbols-outlined text-4xl mb-2" style={{ color: 'var(--bw-text-quaternary)' }}>
                   {isSearching ? 'search_off' : 'folder_open'}
                 </span>
-                <p className="text-gray-400">
+                <p className="text-sm" style={{ color: 'var(--bw-text-tertiary)' }}>
                   {isSearching ? `No results for "${search}"` : 'This folder is empty'}
                 </p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-px">
                 {displayedBookmarks.map(bookmark => (
-                  <div key={bookmark.id} className="flex items-center justify-between bowser-list-item px-4 py-3 rounded-xl group transition-colors">
-                    <div className="flex items-center gap-3 flex-1 cursor-pointer min-w-0" onClick={() => onNavigate(bookmark.url, bookmark.tabKind)}>
-                      <span className="material-symbols-outlined text-gray-500 flex-shrink-0">
+                  <div
+                    key={bookmark.id}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-md group transition-colors"
+                    style={{ background: 'transparent' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div
+                      className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                      onClick={() => onNavigate(bookmark.url, bookmark.tabKind)}
+                    >
+                      <span
+                        className="material-symbols-outlined text-sm flex-shrink-0"
+                        style={{ color: 'var(--bw-text-quaternary)' }}
+                      >
                         {bookmark.tabKind === 'web' ? 'public' : 'auto_awesome'}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-medium text-gray-200 group-hover:text-blue-400 transition-colors truncate">{bookmark.title}</h3>
-                        <p className="text-xs text-gray-600 truncate">{bookmark.url}</p>
+                        <p className="text-sm truncate" style={{ color: 'var(--bw-text-primary)' }}>{bookmark.title}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'var(--bw-text-quaternary)' }}>{bookmark.url}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-4">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-3">
                       <select
                         value={bookmark.folderId || ''}
                         onChange={e => onMoveBookmark(bookmark.url, e.target.value || undefined)}
-                        className="bg-[#202124] border border-[#3c4043] rounded px-2 py-1 text-xs text-gray-400 focus:outline-none focus:border-blue-500 max-w-[120px]"
+                        className="rounded px-2 py-1 text-[11px] outline-none max-w-[100px]"
+                        style={{
+                          background: 'var(--bw-bg-input)',
+                          border: '1px solid var(--bw-border)',
+                          color: 'var(--bw-text-tertiary)',
+                        }}
                         onClick={e => e.stopPropagation()}
                       >
                         <option value="">No Folder</option>
                         {folders.map(f => (<option key={f.id} value={f.id}>{f.name}</option>))}
                       </select>
-                      <button onClick={() => onRemoveBookmark(bookmark.url)} className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors" title="Remove">
+                      <button
+                        onClick={() => onRemoveBookmark(bookmark.url)}
+                        className="p-1 rounded transition-colors"
+                        style={{ color: 'var(--bw-text-quaternary)' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--bw-red)'; e.currentTarget.style.background = 'var(--bw-red-subtle)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--bw-text-quaternary)'; e.currentTarget.style.background = 'transparent'; }}
+                        title="Remove"
+                      >
                         <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
                     </div>

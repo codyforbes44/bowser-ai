@@ -43,24 +43,29 @@ export const InstallPrompt: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center gap-3 bg-[#1e1f23] px-4 py-3 rounded-2xl border border-white/10 mt-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <span className="material-symbols-outlined text-2xl text-blue-400">download</span>
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-lg mt-4 max-w-sm mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300"
+      style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border)' }}
+    >
+      <span className="material-symbols-outlined text-xl" style={{ color: 'var(--bw-accent)' }}>download</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-200">Install Bowser</p>
-        <p className="text-xs text-gray-500">Add to your home screen for a native experience</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--bw-text-primary)' }}>Install Bowser</p>
+        <p className="text-[11px]" style={{ color: 'var(--bw-text-quaternary)' }}>Add to home screen</p>
       </div>
       <button
         onClick={handleInstall}
-        className="px-3 py-1.5 bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+        className="px-3 py-1.5 text-sm font-medium rounded-md transition-colors shrink-0"
+        style={{ background: 'var(--bw-accent)', color: '#ffffff' }}
       >
         Install
       </button>
       <button
         onClick={handleDismiss}
-        className="text-gray-500 hover:text-gray-300 transition-colors p-1"
+        className="p-1 transition-colors"
+        style={{ color: 'var(--bw-text-quaternary)' }}
         aria-label="Dismiss"
       >
-        <span className="material-symbols-outlined text-lg">close</span>
+        <span className="material-symbols-outlined text-base">close</span>
       </button>
     </div>
   );

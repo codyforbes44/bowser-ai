@@ -19,12 +19,12 @@ const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgen
 const mod = isMac ? '⌘' : 'Ctrl';
 
 const SHORTCUTS = [
-  { keys: `${mod}+K`, description: 'Open Command Palette' },
-  { keys: `${mod}+L`, description: 'Focus Address Bar' },
-  { keys: `${mod}+T`, description: 'New Tab' },
-  { keys: `${mod}+Shift+T`, description: 'New AI Tab' },
-  { keys: `${mod}+W`, description: 'Close Current Tab' },
-  { keys: `${mod}+1–9`, description: 'Switch to Tab N' },
+  { keys: `${mod}+K`, description: 'Command palette' },
+  { keys: `${mod}+L`, description: 'Focus address bar' },
+  { keys: `${mod}+T`, description: 'New tab' },
+  { keys: `${mod}+Shift+T`, description: 'New AI tab' },
+  { keys: `${mod}+W`, description: 'Close tab' },
+  { keys: `${mod}+1–9`, description: 'Switch to tab' },
 ];
 
 interface SettingsTabProps {
@@ -41,80 +41,105 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
   };
 
   return (
-    <div className="w-full h-full bowser-settings-bg text-gray-200 p-8 overflow-y-auto">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-medium mb-8 flex items-center gap-3">
-          <span className="material-symbols-outlined text-gray-400">settings</span>
-          Settings
-        </h1>
-        <div className="space-y-8">
+    <div className="w-full h-full overflow-y-auto" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        <div className="flex items-center gap-2.5 mb-8">
+          <span className="material-symbols-outlined text-lg" style={{ color: 'var(--bw-text-quaternary)' }}>settings</span>
+          <h1 className="text-lg font-semibold tracking-tight" style={{ letterSpacing: '-0.02em' }}>Settings</h1>
+        </div>
 
+        <div className="space-y-6">
           {/* Appearance */}
-          <section className="bowser-settings-card p-6 rounded-xl border border-[#3c4043]">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-yellow-400">palette</span>
+          <section
+            className="p-5 rounded-lg"
+            style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border-subtle)' }}
+          >
+            <h2 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-primary)' }}>
+              <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-text-quaternary)' }}>palette</span>
               Appearance
             </h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-200">Theme</h3>
-                  <p className="text-sm text-gray-500">Choose your preferred color scheme.</p>
-                </div>
-                <div className="flex gap-2">
-                  {(['dark', 'light', 'system'] as BowserTheme[]).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => handleThemeChange(t)}
-                      className={`px-4 py-2 rounded-lg text-sm capitalize transition-colors border ${
-                        theme === t
-                          ? 'bg-blue-500 border-blue-500 text-white'
-                          : 'bowser-settings-card border-[#3c4043] hover:bg-[#3c4043] text-gray-300'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: 'var(--bw-text-primary)' }}>Theme</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Choose your color scheme.</p>
+              </div>
+              <div className="flex gap-1">
+                {(['dark', 'light', 'system'] as BowserTheme[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => handleThemeChange(t)}
+                    className="px-3 py-1.5 rounded-md text-xs capitalize transition-colors font-medium"
+                    style={{
+                      background: theme === t ? 'var(--bw-accent)' : 'transparent',
+                      color: theme === t ? '#ffffff' : 'var(--bw-text-tertiary)',
+                      border: `1px solid ${theme === t ? 'var(--bw-accent)' : 'var(--bw-border)'}`,
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
             </div>
           </section>
 
           {/* Keyboard Shortcuts */}
-          <section className="bowser-settings-card p-6 rounded-xl border border-[#3c4043]">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-orange-400">keyboard</span>
-              Keyboard Shortcuts
+          <section
+            className="p-5 rounded-lg"
+            style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border-subtle)' }}
+          >
+            <h2 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-primary)' }}>
+              <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-text-quaternary)' }}>keyboard</span>
+              Keyboard shortcuts
             </h2>
-            <div className="space-y-2">
-              {SHORTCUTS.map(s => (
-                <div key={s.keys} className="flex items-center justify-between py-2 border-b border-[#3c4043] last:border-0">
-                  <span className="text-sm text-gray-300">{s.description}</span>
-                  <kbd className="px-2.5 py-1 bg-[#202124] border border-[#3c4043] rounded-md text-xs text-gray-400 font-mono">{s.keys}</kbd>
+            <div className="space-y-0">
+              {SHORTCUTS.map((s, i) => (
+                <div
+                  key={s.keys}
+                  className="flex items-center justify-between py-2.5"
+                  style={{ borderBottom: i < SHORTCUTS.length - 1 ? '1px solid var(--bw-border-subtle)' : 'none' }}
+                >
+                  <span className="text-sm" style={{ color: 'var(--bw-text-secondary)' }}>{s.description}</span>
+                  <kbd
+                    className="px-2 py-0.5 rounded text-[11px] font-medium"
+                    style={{
+                      background: 'var(--bw-bg-hover)',
+                      border: '1px solid var(--bw-border)',
+                      color: 'var(--bw-text-tertiary)',
+                      fontFamily: 'var(--bw-font-mono)',
+                    }}
+                  >
+                    {s.keys}
+                  </kbd>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Privacy */}
-          <section className="bowser-settings-card p-6 rounded-xl border border-[#3c4043]">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-green-400">shield</span>
-              Privacy and Security
+          <section
+            className="p-5 rounded-lg"
+            style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border-subtle)' }}
+          >
+            <h2 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-primary)' }}>
+              <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-text-quaternary)' }}>shield</span>
+              Privacy
             </h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-200">Clear Browsing Data</h3>
-                  <p className="text-sm text-gray-500">Clear history, cookies, cache, and more.</p>
-                </div>
-                <button
-                  onClick={onClearHistory}
-                  className="px-4 py-2 bowser-settings-bg hover:bg-[#3c4043] border border-[#3c4043] rounded-lg text-sm transition-colors"
-                >
-                  Clear Data
-                </button>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: 'var(--bw-text-primary)' }}>Clear browsing data</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Remove history and cached data.</p>
               </div>
+              <button
+                onClick={onClearHistory}
+                className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                style={{
+                  color: 'var(--bw-text-secondary)',
+                  border: '1px solid var(--bw-border)',
+                  background: 'transparent',
+                }}
+              >
+                Clear data
+              </button>
             </div>
           </section>
         </div>
