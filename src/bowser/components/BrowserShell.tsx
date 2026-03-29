@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { AddressBar } from './AddressBar';
-import { Breadcrumb, GroundingSource, Tab, TokenCount } from '../types';
+import { Breadcrumb, Tab, TokenCount } from '../types';
 
 const AnimatedNumber: React.FC<{ value: number; prefix?: string; prefixVisible?: boolean; animate?: boolean }> = React.memo(({ value, prefix, prefixVisible = true, animate = true }) => {
   const [displayed, setDisplayed] = useState(0);
@@ -74,15 +74,11 @@ interface BrowserShellProps {
   onHome: () => void;
   canGoBack: boolean;
   canGoForward: boolean;
-  groundingSources: GroundingSource[];
-  searchEntryPointHtml: string;
   tabs: Tab[];
   activeTabIndex: number;
   onNewTab: () => void;
   onCloseTab: (index: number) => void;
   onSwitchTab: (index: number) => void;
-  isGrounded: boolean;
-  onToggleGrounding: () => void;
   isBrowserMode: boolean;
   onToggleBrowserMode: () => void;
   tokenCount: TokenCount | null;
@@ -115,15 +111,11 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   onHome,
   canGoBack,
   canGoForward,
-  groundingSources,
-  searchEntryPointHtml,
   tabs,
   activeTabIndex,
   onNewTab,
   onCloseTab,
   onSwitchTab,
-  isGrounded,
-  onToggleGrounding,
   isBrowserMode,
   onToggleBrowserMode,
   tokenCount,
