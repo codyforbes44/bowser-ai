@@ -6,6 +6,7 @@ import { getRecentPrompts } from '../store/session';
 
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
+  onWebNavigate: (query: string) => void;
   isGrounded: boolean;
   onToggleGrounding: () => void;
   bookmarks: Bookmark[];
@@ -13,8 +14,6 @@ interface NewTabProps {
   onOpenBookmarks: () => void;
   history: HistoryEntry[];
   onShowOnboarding?: () => void;
-  isBrowserMode?: boolean;
-  onToggleBrowserMode?: () => void;
   onOpenSettings?: () => void;
 }
 
