@@ -98,6 +98,8 @@ interface BrowserShellProps {
   viewportRef?: React.RefObject<HTMLDivElement | null>;
   webHistoryPosition?: number;
   webHistoryTotal?: number;
+  webHistoryUrls?: string[];
+  onWebHistoryNavigate?: (index: number) => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
