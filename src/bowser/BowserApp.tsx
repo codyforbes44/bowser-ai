@@ -48,6 +48,10 @@ const BowserApp: React.FC = () => {
     applyFontScale(getFontSize());
   }, []);
 
+  useEffect(() => {
+    setStorageItem('live-data', isGrounded);
+  }, [isGrounded]);
+
   // Swipe to switch tabs on mobile
   useSwipeGesture(viewportRef, {
     onSwipeLeft: () => {
