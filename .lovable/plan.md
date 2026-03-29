@@ -1,42 +1,28 @@
 
 
-## Remove Google Default & Create Bowser Install Landing Page
+## Make Web Mode the Default for New Sessions
 
-### What changes
+### Current Behavior
+- New tabs have `tabKind: 'new-tab'`, and `isBrowserMode` is derived as `tabKind === 'web'` → always `false` on the new-tab page
+- The mode toggle on NewTab calls `handleToggleBrowserMode`, which mutates the tab's `tabKind` (destroying the new-tab view)
+- Result: new sessions always start in Create mode
 
-**Goal**: Replace all `google.com` references as the default web tab with a branded Bowser install/welcome page that serves as the perfect landing experience.
+### What Changes
 
-### 1. Remove Google as default URL (3 files)
+#### 1. Add local mode state to NewTab (default: Web)
+Instead of deriving mode from the parent tab's `tabKind`, NewTab will manage its own `localBrowserMode` state initialized to `true`. The mode toggle chip will flip this local state without changing the tab kind. This keeps the install landing page visible while showing "Web" as the active mode.
 
-- **`src/bowser/types.ts`** line 94: Change `browserUrl` default from `'https://www.google.com/webhp?igu=1'` to `undefined`
-- **`src/bowser/BowserApp.tsx`** lines 131-136: `handleHome` for web tabs — instead of navigating to Google, switch to `'new-tab'` (same as AI tabs do)
-- **`src/bowser/BowserApp.tsx`** line 152: `handleToggleBrowserMode` — remove Google URL when switching to web mode, set to `undefined`
+#### 2. Add `onWebNavigate` prop to NewTab
+NewTab needs a way to trigger web navigation. BowserApp will pass `handleOmnibarNavigate` (or a wrapper) so that when the user submits in Web mode, it routes through the omnibox logic (URL detection, search engine fallback).
 
-### 2. Redesign NewTab as the Bowser install/welcome page
+**Submit logic:**
+- Web mode → call `onWebNavigate(prompt)` which uses `handleOmnibarNavigate` to navigate or search
+- Create mode → call existing `onCreatePage(prompt)` as before
 
-Transform `NewTab.tsx` into a polished, app-store-quality landing page for first-time users (when `isFirstRun` is true). Returning users still see bookmarks/recent activity.
+#### 3. Update BowserApp to pass the web navigate handler
+Wire `handleOmnibarNavigate` into the NewTab component. Remove `isBrowserMode` and `onToggleBrowserMode` props from NewTab (mode is now local).
 
-**First-run install page layout:**
-- Large Bowser PWA icon (`pwa-192x192.png`) centered at top
-- "Bowser" wordmark with tagline: "Your AI-powered browser. Search, create, and explore — all in one place."
-- Three feature highlights with icons:
-  - **Create mode** — "Generate any webpage instantly with AI"
-  - **Web mode** — "Browse the real web with a built-in search"
-  - **Live data** — "Ground AI responses with real-time information"
-- Prominent **Install Bowser** button (triggers PWA install prompt)
-- "Get started" button below that focuses the omnibox
-- The existing omnibox stays functional at the top for immediate use
-
-**Returning users**: Keep existing layout (bookmarks, recent prompts, continue browsing) unchanged.
-
-### 3. Enhance InstallPrompt for reuse
-
-Extract the PWA install logic into a shared hook (`useInstallPrompt`) so both the banner `InstallPrompt` and the new landing page install button can trigger the native install flow.
-
-### Files to edit
-- `src/bowser/types.ts` — Remove Google default URL
-- `src/bowser/BowserApp.tsx` — Remove Google references in handleHome and handleToggleBrowserMode
-- `src/bowser/components/NewTab.tsx` — Add install landing page for first-run state
-- `src/bowser/hooks/useInstallPrompt.ts` — New shared hook for PWA install logic
-- `src/bowser/components/InstallPrompt.tsx` — Refactor to use shared hook
+### Files to Edit
+- **`src/bowser/components/NewTab.tsx`** — Add local `localBrowserMode` state (default `true`), add `onWebNavigate` prop, update submit handler to branch on mode, update toggle to use local state
+- **`src/bowser/BowserApp.tsx`** — Pass `onWebNavigate` callback wrapping `handleOmnibarNavigate`, remove `isBrowserMode`/`onToggleBrowserMode` props from NewTab usage
 
