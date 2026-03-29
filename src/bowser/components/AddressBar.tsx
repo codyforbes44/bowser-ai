@@ -262,7 +262,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 onKeyDown={handleKeyDown}
                 className="omnibar-input pr-10"
                 style={error ? { borderColor: 'var(--bw-red)', background: 'var(--bw-red-subtle)' } : undefined}
-                placeholder={isBrowserMode ? 'Search or go to a URL' : 'Ask anything…'}
+                placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
                 aria-label="Search or enter a URL"
               />
               <button
@@ -389,13 +389,13 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
                 <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
                   <span className="text-[13px]">
-                    {isBrowserMode ? 'Web mode' : 'AI mode'}
+                    {isBrowserMode ? 'Web mode' : 'Create mode'}
                   </span>
                   <div
-                    className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
+                    className={`toggle-track ${!isBrowserMode ? 'active' : ''}`}
                     onClick={onToggleBrowserMode}
                     role="switch"
-                    aria-checked={isBrowserMode}
+                    aria-checked={!isBrowserMode}
                     tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleBrowserMode(); } }}
                   >
@@ -442,19 +442,19 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             style={{ border: '1px solid var(--bw-border)', background: 'transparent' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            title={isBrowserMode ? 'Switch to AI mode' : 'Switch to Web mode'}
-            aria-label={`Switch to ${isBrowserMode ? 'AI' : 'Web'} mode`}
+            title={isBrowserMode ? 'Switch to Create mode' : 'Switch to Web mode'}
+            aria-label={`Switch to ${isBrowserMode ? 'Create' : 'Web'} mode`}
           >
-            <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>AI</span>
+            <span className="text-[11px] font-semibold select-none" style={{ color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-text-quaternary)' }}>Web</span>
             <div
-              className={`toggle-track ${isBrowserMode ? 'active' : ''}`}
+              className={`toggle-track ${!isBrowserMode ? 'active' : ''}`}
               role="switch"
-              aria-checked={isBrowserMode}
+              aria-checked={!isBrowserMode}
               style={{ width: '26px', height: '14px' }}
             >
-              <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: isBrowserMode ? 'translateX(12px)' : 'none' }} />
+              <div className="toggle-thumb" style={{ width: '10px', height: '10px', top: '1px', left: '1px', transform: !isBrowserMode ? 'translateX(12px)' : 'none' }} />
             </div>
-            <span className="text-[11px] font-semibold select-none" style={{ color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-text-quaternary)' }}>Web</span>
+            <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>Create</span>
           </button>
 
           <button

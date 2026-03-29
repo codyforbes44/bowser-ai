@@ -238,7 +238,7 @@ const BowserApp: React.FC = () => {
     { id: 'open-bookmarks', label: 'Bookmarks', icon: 'bookmarks', section: 'Navigation', onExecute: () => navigateToSystemPage('bookmarks') },
     { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
-    { id: 'toggle-mode', label: 'Toggle AI / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
+    { id: 'toggle-mode', label: 'Toggle Create / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
     { id: 'toggle-grounding', label: 'Toggle Live Data', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
   ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate]);
 
