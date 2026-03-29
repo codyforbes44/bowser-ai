@@ -375,38 +375,44 @@ const BowserApp: React.FC = () => {
             onOpenSettings={() => navigateToSystemPage('settings')}
           />
         ) : activeTab.tabKind === 'history' ? (
-          <HistoryTab
-            history={history}
-            onClearHistory={clearHistory}
-            onRemoveEntry={removeHistoryEntry}
-            onNavigate={(url: string, tabKind: TabKind) => {
-              if (tabKind === 'web') {
-                handleOmnibarNavigate('create', url);
-              } else {
-                updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
-                handleCreate(url);
-              }
-            }}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <HistoryTab
+              history={history}
+              onClearHistory={clearHistory}
+              onRemoveEntry={removeHistoryEntry}
+              onNavigate={(url: string, tabKind: TabKind) => {
+                if (tabKind === 'web') {
+                  handleOmnibarNavigate('create', url);
+                } else {
+                  updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
+                  handleCreate(url);
+                }
+              }}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'bookmarks' ? (
-          <BookmarksTab
-            bookmarks={bookmarks}
-            folders={bookmarkFolders}
-            onCreateFolder={createFolder}
-            onRenameFolder={renameFolder}
-            onDeleteFolder={deleteFolder}
-            onMoveBookmark={moveBookmark}
-            onRemoveBookmark={removeBookmark}
-            onNavigate={navigateToBookmarkUrl}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <BookmarksTab
+              bookmarks={bookmarks}
+              folders={bookmarkFolders}
+              onCreateFolder={createFolder}
+              onRenameFolder={renameFolder}
+              onDeleteFolder={deleteFolder}
+              onMoveBookmark={moveBookmark}
+              onRemoveBookmark={removeBookmark}
+              onNavigate={navigateToBookmarkUrl}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'settings' ? (
-          <SettingsTab
-            onClearHistory={clearHistory}
-            onClearBookmarks={() => {
-              bookmarks.forEach(b => removeBookmark(b.url));
-            }}
-            onShowOnboarding={() => setShowOnboarding(true)}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <SettingsTab
+              onClearHistory={clearHistory}
+              onClearBookmarks={() => {
+                bookmarks.forEach(b => removeBookmark(b.url));
+              }}
+              onShowOnboarding={() => setShowOnboarding(true)}
+            />
+          </Suspense>
         ) : activeTab.tabKind === 'web' ? (
           <iframe
             key={activeTab.navigationId}
