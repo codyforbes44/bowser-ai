@@ -5,6 +5,7 @@ import { NewTab } from './components/NewTab';
 import { HistoryTab } from './components/HistoryTab';
 import { BookmarksTab } from './components/BookmarksTab';
 import { SettingsTab, applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
+import { CommandPalette } from './components/CommandPalette';
 import { streamPageGeneration } from './services/geminiService';
 import { Page, Breadcrumb, TokenCount, FormFieldState, GroundingSource, Tab, createTab, TabKind } from './types';
 import { siteNameFromPrompt, parsePageFromHref, extractTitleFromHtml, breadcrumbToDisplay } from './utils/urlHelpers';
@@ -16,6 +17,7 @@ const BowserApp: React.FC = () => {
   const [tabs, setTabs] = useState<Tab[]>([createTab('web')]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isGrounded, setIsGrounded] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
@@ -293,6 +295,12 @@ const BowserApp: React.FC = () => {
     setActiveTabIndex(tabs.length);
   }, [tabs.length]);
 
+  const handleNewAiTab = useCallback(() => {
+    const newTab = createTab('new-tab');
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabIndex(tabs.length);
+  }, [tabs.length]);
+
   const handleCloseTab = useCallback((index: number) => {
     const closingTab = tabs[index];
     const controller = abortControllersRef.current.get(closingTab.id);
@@ -345,130 +353,177 @@ const BowserApp: React.FC = () => {
     toggleBookmark(url, title, tab.tabKind);
   }, [tabs, activeTabIndex, toggleBookmark]);
 
+  const navigateToSystemPage = useCallback((kind: TabKind) => {
+    updateTab(activeTabIndex, t => ({
+      ...t, tabKind: kind, browserUrl: undefined,
+      currentIndex: -1, history: [], loading: false, generatedContent: '',
+      breadcrumb: { sitename: kind, page: '' },
+    }));
+  }, [activeTabIndex, updateTab]);
+
+  const navigateToBookmarkUrl = useCallback((url: string, tabKind: TabKind) => {
+    if (tabKind === 'web') {
+      updateTab(activeTabIndex, tab => ({
+        ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
+        loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
+        navigationId: tab.navigationId + 1
+      }));
+    } else {
+      updateTab(activeTabIndex, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
+      const fallback: Breadcrumb = { sitename: url, page: 'Home' };
+      generate(url, null, fallback, true);
+    }
+  }, [activeTabIndex, updateTab, generate]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      } else if (e.key === 'l') {
+        e.preventDefault();
+        window.dispatchEvent(new Event('bowser:focus-omnibar'));
+      } else if (e.key === 't' && !e.shiftKey) {
+        e.preventDefault();
+        handleNewTab();
+      } else if (e.key === 'T' && e.shiftKey) {
+        e.preventDefault();
+        handleNewAiTab();
+      } else if (e.key === 'w') {
+        if (tabs.length > 1) {
+          e.preventDefault();
+          handleCloseTab(activeTabIndex);
+        }
+      } else if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const idx = e.key === '9' ? tabs.length - 1 : Math.min(parseInt(e.key) - 1, tabs.length - 1);
+        handleSwitchTab(idx);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tabs, activeTabIndex, handleNewTab, handleNewAiTab, handleCloseTab, handleSwitchTab]);
+
+  const isMac = /Mac/i.test(navigator.userAgent);
+  const modLabel = isMac ? '⌘' : 'Ctrl+';
+
+  const commandActions = [
+    { id: 'new-tab', label: 'New Tab', icon: 'add', shortcut: `${modLabel}T`, section: 'Tabs', onExecute: handleNewTab },
+    { id: 'new-ai-tab', label: 'New AI Tab', icon: 'auto_awesome', shortcut: `${modLabel}Shift+T`, section: 'Tabs', onExecute: handleNewAiTab },
+    { id: 'close-tab', label: 'Close Tab', icon: 'close', shortcut: `${modLabel}W`, section: 'Tabs', onExecute: () => { if (tabs.length > 1) handleCloseTab(activeTabIndex); } },
+    { id: 'focus-bar', label: 'Focus Address Bar', icon: 'search', shortcut: `${modLabel}L`, section: 'Navigation', onExecute: () => window.dispatchEvent(new Event('bowser:focus-omnibar')) },
+    { id: 'open-history', label: 'Open History', icon: 'history', section: 'Navigation', onExecute: () => navigateToSystemPage('history') },
+    { id: 'open-bookmarks', label: 'Open Bookmarks', icon: 'bookmarks', section: 'Navigation', onExecute: () => navigateToSystemPage('bookmarks') },
+    { id: 'open-settings', label: 'Open Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
+    { id: 'toggle-mode', label: 'Toggle AI/Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
+    { id: 'toggle-grounding', label: 'Toggle Real-time Browsing', icon: 'language', section: 'Actions', onExecute: () => setIsGrounded(prev => !prev) },
+  ];
+
   const isNewTab = activeTab.tabKind === 'new-tab' || (activeTab.currentIndex === -1 && !activeTab.loading && activeTab.tabKind !== 'web');
   const displayContent = activeTab.loading ? activeTab.generatedContent : (currentPage?.html || '');
 
   return (
-    <BrowserShell
-      breadcrumb={activeTab.breadcrumb}
-      isLoading={activeTab.loading}
-      loadingMessage={activeTab.loadingMessage}
-      onNavigate={handleOmnibarNavigate}
-      onBack={handleBack}
-      onForward={handleForward}
-      onRefresh={handleRefresh}
-      onStop={handleStop}
-      onHome={handleHome}
-      canGoBack={activeTab.tabKind === 'web' ? false : activeTab.currentIndex > 0}
-      canGoForward={activeTab.tabKind === 'web' ? false : activeTab.currentIndex < activeTab.history.length - 1}
-      groundingSources={activeTab.groundingSources}
-      searchEntryPointHtml={activeTab.searchEntryPointHtml}
-      tabs={tabs}
-      activeTabIndex={activeTabIndex}
-      onNewTab={handleNewTab}
-      onCloseTab={handleCloseTab}
-      onSwitchTab={handleSwitchTab}
-      isGrounded={isGrounded}
-      onToggleGrounding={() => setIsGrounded(prev => !prev)}
-      isBrowserMode={activeTab.tabKind === 'web'}
-      onToggleBrowserMode={handleToggleBrowserMode}
-      tokenCount={activeTab.tokenCount}
-      isBookmarked={isBookmarked(activeTab.tabKind === 'web' ? (activeTab.browserUrl || '') : (currentPage?.prompt || ''))}
-      onToggleBookmark={handleToggleBookmark}
-      canBookmark={!isNewTab && activeTab.tabKind !== 'history' && activeTab.tabKind !== 'bookmarks' && activeTab.tabKind !== 'settings'}
-      bookmarks={bookmarks}
-      bookmarkFolders={bookmarkFolders}
-      onCreateBookmarkFolder={createFolder}
-      onRenameBookmarkFolder={renameFolder}
-      onDeleteBookmarkFolder={deleteFolder}
-      onMoveBookmark={moveBookmark}
-      onNavigateToBookmark={(url: string, tabKind: TabKind) => {
-        if (tabKind === 'web') {
-          updateTab(activeTabIndex, tab => ({
-            ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
-            loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
-            navigationId: tab.navigationId + 1
-          }));
-        } else {
-          updateTab(activeTabIndex, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
-          const fallback: Breadcrumb = { sitename: url, page: 'Home' };
-          generate(url, null, fallback, true);
-        }
-      }}
-    >
-      {isNewTab ? (
-        <NewTab
-          onCreatePage={(prompt) => {
-            updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
-            handleCreate(prompt);
-          }}
-          isGrounded={isGrounded}
-          onToggleGrounding={() => setIsGrounded(prev => !prev)}
-          bookmarks={bookmarks}
-          bookmarkFolders={bookmarkFolders}
-          onCreateBookmarkFolder={createFolder}
-          onRenameBookmarkFolder={renameFolder}
-          onDeleteBookmarkFolder={deleteFolder}
-          onMoveBookmark={moveBookmark}
-          onNavigateToBookmark={(url: string, tabKind: TabKind) => {
-            if (tabKind === 'web') {
-              handleOmnibarNavigate('create', url);
-            } else {
+    <>
+      <BrowserShell
+        breadcrumb={activeTab.breadcrumb}
+        isLoading={activeTab.loading}
+        loadingMessage={activeTab.loadingMessage}
+        onNavigate={handleOmnibarNavigate}
+        onBack={handleBack}
+        onForward={handleForward}
+        onRefresh={handleRefresh}
+        onStop={handleStop}
+        onHome={handleHome}
+        canGoBack={activeTab.tabKind === 'web' ? false : activeTab.currentIndex > 0}
+        canGoForward={activeTab.tabKind === 'web' ? false : activeTab.currentIndex < activeTab.history.length - 1}
+        groundingSources={activeTab.groundingSources}
+        searchEntryPointHtml={activeTab.searchEntryPointHtml}
+        tabs={tabs}
+        activeTabIndex={activeTabIndex}
+        onNewTab={handleNewTab}
+        onCloseTab={handleCloseTab}
+        onSwitchTab={handleSwitchTab}
+        isGrounded={isGrounded}
+        onToggleGrounding={() => setIsGrounded(prev => !prev)}
+        isBrowserMode={activeTab.tabKind === 'web'}
+        onToggleBrowserMode={handleToggleBrowserMode}
+        tokenCount={activeTab.tokenCount}
+        isBookmarked={isBookmarked(activeTab.tabKind === 'web' ? (activeTab.browserUrl || '') : (currentPage?.prompt || ''))}
+        onToggleBookmark={handleToggleBookmark}
+        canBookmark={!isNewTab && activeTab.tabKind !== 'history' && activeTab.tabKind !== 'bookmarks' && activeTab.tabKind !== 'settings'}
+        bookmarks={bookmarks}
+        bookmarkFolders={bookmarkFolders}
+        onCreateBookmarkFolder={createFolder}
+        onRenameBookmarkFolder={renameFolder}
+        onDeleteBookmarkFolder={deleteFolder}
+        onMoveBookmark={moveBookmark}
+        onNavigateToBookmark={navigateToBookmarkUrl}
+      >
+        {isNewTab ? (
+          <NewTab
+            onCreatePage={(prompt) => {
               updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
-              handleCreate(url);
-            }
-          }}
-          onRemoveBookmark={removeBookmark}
-        />
-      ) : activeTab.tabKind === 'history' ? (
-        <HistoryTab
-          history={history}
-          onClearHistory={clearHistory}
-          onRemoveEntry={removeHistoryEntry}
-          onNavigate={(url: string, tabKind: TabKind) => {
-            if (tabKind === 'web') {
-              handleOmnibarNavigate('create', url);
-            } else {
-              updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
-              handleCreate(url);
-            }
-          }}
-        />
-      ) : activeTab.tabKind === 'bookmarks' ? (
-        <BookmarksTab
-          bookmarks={bookmarks}
-          folders={bookmarkFolders}
-          onCreateFolder={createFolder}
-          onRenameFolder={renameFolder}
-          onDeleteFolder={deleteFolder}
-          onMoveBookmark={moveBookmark}
-          onRemoveBookmark={removeBookmark}
-          onNavigate={(url: string, tabKind: TabKind) => {
-            if (tabKind === 'web') {
-              handleOmnibarNavigate('create', url);
-            } else {
-              updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
-              handleCreate(url);
-            }
-          }}
-        />
-      ) : activeTab.tabKind === 'settings' ? (
-        <SettingsTab />
-      ) : activeTab.tabKind === 'web' ? (
-        <iframe
-          key={activeTab.navigationId}
-          src={activeTab.browserUrl}
-          className="w-full h-full border-none bg-white"
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-        />
-      ) : (
-        <Sandbox
-          htmlContent={displayContent}
-          onNavigate={handleLinkClick}
-          onAction={handleAction}
-        />
-      )}
-    </BrowserShell>
+              handleCreate(prompt);
+            }}
+            isGrounded={isGrounded}
+            onToggleGrounding={() => setIsGrounded(prev => !prev)}
+            bookmarks={bookmarks}
+            onNavigateToBookmark={navigateToBookmarkUrl}
+            onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
+          />
+        ) : activeTab.tabKind === 'history' ? (
+          <HistoryTab
+            history={history}
+            onClearHistory={clearHistory}
+            onRemoveEntry={removeHistoryEntry}
+            onNavigate={(url: string, tabKind: TabKind) => {
+              if (tabKind === 'web') {
+                handleOmnibarNavigate('create', url);
+              } else {
+                updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
+                handleCreate(url);
+              }
+            }}
+          />
+        ) : activeTab.tabKind === 'bookmarks' ? (
+          <BookmarksTab
+            bookmarks={bookmarks}
+            folders={bookmarkFolders}
+            onCreateFolder={createFolder}
+            onRenameFolder={renameFolder}
+            onDeleteFolder={deleteFolder}
+            onMoveBookmark={moveBookmark}
+            onRemoveBookmark={removeBookmark}
+            onNavigate={navigateToBookmarkUrl}
+          />
+        ) : activeTab.tabKind === 'settings' ? (
+          <SettingsTab onClearHistory={clearHistory} />
+        ) : activeTab.tabKind === 'web' ? (
+          <iframe
+            key={activeTab.navigationId}
+            src={activeTab.browserUrl}
+            className="w-full h-full border-none bg-white"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+          />
+        ) : (
+          <Sandbox
+            htmlContent={displayContent}
+            onNavigate={handleLinkClick}
+            onAction={handleAction}
+          />
+        )}
+      </BrowserShell>
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        actions={commandActions}
+      />
+    </>
   );
 };
 
