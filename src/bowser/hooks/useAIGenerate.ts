@@ -1,15 +1,14 @@
 import { useCallback, useRef } from 'react';
-import { Page, Breadcrumb, TokenCount, GroundingSource, FormFieldState, Tab } from '../types';
+import { Page, Breadcrumb, TokenCount, FormFieldState, Tab } from '../types';
 import { streamPageGeneration } from '../services/geminiService';
 import { extractTitleFromHtml, siteNameFromPrompt } from '../utils/urlHelpers';
 import { addRecentPrompt } from '../store/session';
 
 export function useAIGenerate(deps: {
-  isGrounded: boolean;
   activeTab: Tab | undefined;
   updateTabById: (id: string, updater: (t: Tab) => Tab) => void;
 }) {
-  const { isGrounded, activeTab, updateTabById } = deps;
+  const { activeTab, updateTabById } = deps;
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   const generate = useCallback(async (
@@ -42,12 +41,10 @@ export function useAIGenerate(deps: {
 
     let fullHtml = '';
     let pageTokenCount: TokenCount = { input: 0, output: 0 };
-    let pageGroundingSources: GroundingSource[] = [];
-    let pageSearchEntryPointHtml = '';
     let titleExtracted = false;
 
     try {
-      const stream = streamPageGeneration(prompt, currentHtml, isGrounded, controller.signal, formState, window.innerWidth <= 768);
+      const stream = streamPageGeneration(prompt, currentHtml, controller.signal, formState, window.innerWidth <= 768);
 
       for await (const chunk of stream) {
         if (controller.signal.aborted) break;
@@ -65,14 +62,6 @@ export function useAIGenerate(deps: {
             const meta = JSON.parse(chunk.replace('__META__', ''));
             pageTokenCount = meta.tokenCount;
             updateTabById(tabId, tab => ({ ...tab, tokenCount: pageTokenCount }));
-            if (meta.groundingSources?.length) {
-              pageGroundingSources = meta.groundingSources;
-              updateTabById(tabId, tab => ({ ...tab, groundingSources: meta.groundingSources }));
-            }
-            if (meta.searchEntryPointHtml) {
-              pageSearchEntryPointHtml = meta.searchEntryPointHtml;
-              updateTabById(tabId, tab => ({ ...tab, searchEntryPointHtml: meta.searchEntryPointHtml }));
-            }
           } catch { /* ignore */ }
           continue;
         }
@@ -106,9 +95,9 @@ export function useAIGenerate(deps: {
         tokenCount: pageTokenCount,
         prompt,
         contextHtml: currentHtml,
-        isGrounded,
-        groundingSources: pageGroundingSources,
-        searchEntryPointHtml: pageSearchEntryPointHtml,
+        isGrounded: false,
+        groundingSources: [],
+        searchEntryPointHtml: '',
       };
 
       updateTabById(tabId, tab => {
@@ -136,7 +125,7 @@ export function useAIGenerate(deps: {
         abortControllersRef.current.delete(tabId);
       }
     }
-  }, [isGrounded, activeTab?.id, updateTabById]);
+  }, [activeTab?.id, updateTabById]);
 
   const handleStop = useCallback(() => {
     if (!activeTab) return;
