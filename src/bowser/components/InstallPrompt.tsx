@@ -49,7 +49,7 @@ export const InstallPrompt: React.FC = () => {
       <span className="material-symbols-outlined text-xl" style={{ color: 'var(--bw-accent)' }}>download</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium" style={{ color: 'var(--bw-text-primary)' }}>Install Bowser</p>
-        <p className="text-[11px]" style={{ color: 'var(--bw-text-quaternary)' }}>Add to home screen</p>
+        <p className="text-[11px]" style={{ color: 'var(--bw-text-quaternary)' }}>Add to your home screen for quick access</p>
       </div>
       <button
         onClick={handleInstall}

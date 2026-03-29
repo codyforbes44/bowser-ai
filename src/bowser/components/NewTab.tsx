@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Bookmark, HistoryEntry, TabKind } from '../types';
 import { InstallPrompt } from './InstallPrompt';
 import { getRecentPrompts } from '../store/session';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
@@ -11,9 +12,10 @@ interface NewTabProps {
   onNavigateToBookmark: (url: string, tabKind: TabKind) => void;
   onOpenBookmarks: () => void;
   history: HistoryEntry[];
+  onShowOnboarding?: () => void;
 }
 
-const LUCKY_PROMPTS = [
+const SURPRISE_PROMPTS = [
   "A real-time dashboard of the current weather in major world cities",
   "A news aggregator showing the latest headlines from today",
   "A stock market tracker with live price updates for tech companies",
@@ -36,13 +38,13 @@ export const NewTab: React.FC<NewTabProps> = ({
   onNavigateToBookmark,
   onOpenBookmarks,
   history,
+  onShowOnboarding,
 }) => {
   const [prompt, setPrompt] = useState('');
 
   const recentPrompts = useMemo(() => getRecentPrompts().slice(0, 4), []);
 
   const recentActivity = useMemo(() => {
-    // Deduplicate by title, take most recent 6
     const seen = new Set<string>();
     return history.filter(e => {
       if (seen.has(e.title)) return false;
@@ -58,24 +60,22 @@ export const NewTab: React.FC<NewTabProps> = ({
     }
   };
 
-  const handleHowItWorks = () => {
+  const handleAbout = () => {
     onCreatePage(
-      `A docs page for "Bowser" — a demo powered by Gemini 3 Flash, a model released in March 2026.` +
-      `The Bowser demo works by sending the user's description to the Gemini API, and Gemini generates a complete HTML page in real-time using streaming.` +
-      `The page is rendered live in an iframe as tokens arrive. Links within the page trigger new prompts to Gemini, so users can navigate an entirely AI-generated web. ` +
-      `Introduce Bowser in the docs, how every page is generated in realtime by Gemini 3 Flash, how each click becomes a new prompt, generated based on the previous page. ` +
-      `All pages are generated from scratch using a prompt, including this one. Stat that this is enabled by the speed and coding capabilities of Gemini 3 Flash.` +
-      `Add that this is an experiment only, Gemini can make mistakes, results may vary. Don't make claims about 'worlds first' or 'groundbreaking'.` +
-      `Empasize that every page (*including this one*!) is generated from scratch. Generations use the previous page only, there is no state apart from the previous page.` +
-      `Add a call to action of 'See Examples' which takes the user to a page with examples of things Gemini can generate.`
+      `A docs page for "Bowser" — an AI-powered browser demo built on Gemini. ` +
+      `Explain how Bowser works: users describe any website in plain language and Gemini generates a complete, interactive HTML page in real time using streaming. ` +
+      `Pages are rendered live in an iframe as tokens arrive. Links within generated pages trigger new prompts, letting users navigate an entirely AI-generated web. ` +
+      `Each page is built from scratch — there's no stored content, just a prompt and the previous page as context. ` +
+      `Note this is an experimental demo. Gemini can make mistakes and results may vary. ` +
+      `Include a section with example prompts users can try. Keep the tone clear and informative, not promotional.`
     );
   };
 
-  const handleLucky = () => {
+  const handleSurprise = () => {
     if (prompt.trim().length >= 3) {
       onCreatePage(prompt.trim());
     } else {
-      const randomPrompt = LUCKY_PROMPTS[Math.floor(Math.random() * LUCKY_PROMPTS.length)];
+      const randomPrompt = SURPRISE_PROMPTS[Math.floor(Math.random() * SURPRISE_PROMPTS.length)];
       onCreatePage(randomPrompt);
     }
   };
@@ -90,6 +90,8 @@ export const NewTab: React.FC<NewTabProps> = ({
     return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
+  const isFirstRun = !recentPrompts.length && !recentActivity.length && !topBookmarks.length;
+
   return (
     <div className="newtab-page overflow-y-auto">
       <div className="newtab-content min-h-full py-16">
@@ -101,6 +103,11 @@ export const NewTab: React.FC<NewTabProps> = ({
           >
             Bowser
           </h1>
+          {isFirstRun && (
+            <p className="text-[13px] mt-1" style={{ color: 'var(--bw-text-tertiary)' }}>
+              Describe any website and watch it come to life.
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="newtab-form">
@@ -110,11 +117,11 @@ export const NewTab: React.FC<NewTabProps> = ({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="newtab-input"
-              placeholder="Describe any website…"
+              placeholder="Search or describe a page…"
               aria-label="Describe a website to generate"
               autoFocus
             />
-            <button type="submit" className="newtab-submit" aria-label="Submit">
+            <button type="submit" className="newtab-submit" aria-label="Go">
               <span className="material-symbols-outlined">arrow_forward</span>
             </button>
           </div>
@@ -122,10 +129,10 @@ export const NewTab: React.FC<NewTabProps> = ({
 
         <div className="flex flex-col items-center gap-4 mt-2">
           <div className="newtab-buttons">
-            <button onClick={handleHowItWorks} className="newtab-btn">
-              How it works
+            <button onClick={handleAbout} className="newtab-btn">
+              About Bowser
             </button>
-            <button onClick={handleLucky} className="newtab-btn">
+            <button onClick={handleSurprise} className="newtab-btn">
               Surprise me
             </button>
           </div>
@@ -138,6 +145,7 @@ export const NewTab: React.FC<NewTabProps> = ({
               background: isGrounded ? 'var(--bw-accent-subtle)' : 'transparent',
               border: `1px solid ${isGrounded ? 'var(--bw-accent)' : 'var(--bw-border)'}`,
             }}
+            title={isGrounded ? 'Pages include live web data' : 'Enable to include live web data in generated pages'}
           >
             <span
               className="material-symbols-outlined text-base"
@@ -149,12 +157,60 @@ export const NewTab: React.FC<NewTabProps> = ({
               className="text-xs font-medium"
               style={{ color: isGrounded ? 'var(--bw-accent)' : 'var(--bw-text-tertiary)' }}
             >
-              Real-time browsing {isGrounded ? 'on' : 'off'}
+              Live data {isGrounded ? 'on' : 'off'}
             </span>
           </button>
 
           <InstallPrompt />
         </div>
+
+        {/* Quick start for first-time users */}
+        {isFirstRun && (
+          <div className="mt-10 w-full max-w-md">
+            <h2
+              className="text-[11px] font-medium uppercase tracking-widest mb-3"
+              style={{ color: 'var(--bw-text-quaternary)' }}
+            >
+              Try something
+            </h2>
+            <div className="space-y-1">
+              {[
+                'A personal finance tracker with spending categories and charts',
+                'A recipe book for Mediterranean dishes with prep times',
+                'A travel planner for a weekend trip to Tokyo',
+              ].map((suggestion, i) => (
+                <button
+                  key={i}
+                  onClick={() => onCreatePage(suggestion)}
+                  className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors group"
+                  style={{ background: 'transparent' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span
+                    className="material-symbols-outlined text-sm flex-shrink-0"
+                    style={{ color: 'var(--bw-text-quaternary)' }}
+                  >arrow_forward</span>
+                  <span
+                    className="text-[13px] truncate"
+                    style={{ color: 'var(--bw-text-secondary)' }}
+                  >{suggestion}</span>
+                </button>
+              ))}
+            </div>
+            {onShowOnboarding && (
+              <button
+                onClick={onShowOnboarding}
+                className="mt-4 text-[12px] font-medium transition-colors"
+                style={{ color: 'var(--bw-text-quaternary)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-accent)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
+              >
+                Learn how Bowser works →
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Recent prompts */}
         {recentPrompts.length > 0 && (
@@ -163,7 +219,7 @@ export const NewTab: React.FC<NewTabProps> = ({
               className="text-[11px] font-medium uppercase tracking-widest mb-3"
               style={{ color: 'var(--bw-text-quaternary)' }}
             >
-              Recent prompts
+              Pick up where you left off
             </h2>
             <div className="space-y-1">
               {recentPrompts.map((p, i) => (
@@ -260,7 +316,7 @@ export const NewTab: React.FC<NewTabProps> = ({
               className="text-[11px] font-medium uppercase tracking-widest mb-3"
               style={{ color: 'var(--bw-text-quaternary)' }}
             >
-              Recent activity
+              Recent
             </h2>
             <div className="space-y-px">
               {recentActivity.map(entry => (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { getStorageItem, setStorageItem } from '../utils/storage';
+import { markOnboardingComplete } from './OnboardingModal';
 
 export type BowserTheme = 'dark' | 'light' | 'system';
 
@@ -29,15 +30,22 @@ const SHORTCUTS = [
 
 interface SettingsTabProps {
   onClearHistory?: () => void;
+  onShowOnboarding?: () => void;
 }
 
-export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
+export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onShowOnboarding }) => {
   const [theme, setTheme] = React.useState<BowserTheme>(getEffectiveTheme);
 
   const handleThemeChange = (newTheme: BowserTheme) => {
     setTheme(newTheme);
     setStorageItem('theme', newTheme);
     applyBowserTheme(newTheme);
+  };
+
+  const handleResetOnboarding = () => {
+    // Reset and show
+    setStorageItem('onboarding-complete', false);
+    onShowOnboarding?.();
   };
 
   return (
@@ -61,7 +69,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm" style={{ color: 'var(--bw-text-primary)' }}>Theme</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Choose your color scheme.</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Choose light, dark, or match your system.</p>
               </div>
               <div className="flex gap-1">
                 {(['dark', 'light', 'system'] as BowserTheme[]).map((t) => (
@@ -115,31 +123,58 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
             </div>
           </section>
 
-          {/* Privacy */}
+          {/* Data & Privacy */}
           <section
             className="p-5 rounded-lg"
             style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border-subtle)' }}
           >
             <h2 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-primary)' }}>
               <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-text-quaternary)' }}>shield</span>
-              Privacy
+              Data &amp; privacy
             </h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: 'var(--bw-text-primary)' }}>Clear browsing data</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Remove history and cached data.</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--bw-text-primary)' }}>Clear browsing data</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--bw-text-quaternary)' }}>Remove all history, bookmarks, and saved prompts.</p>
+                </div>
+                <button
+                  onClick={onClearHistory}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                  style={{
+                    color: 'var(--bw-text-secondary)',
+                    border: '1px solid var(--bw-border)',
+                    background: 'transparent',
+                  }}
+                >
+                  Clear data
+                </button>
               </div>
-              <button
-                onClick={onClearHistory}
-                className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                style={{
-                  color: 'var(--bw-text-secondary)',
-                  border: '1px solid var(--bw-border)',
-                  background: 'transparent',
-                }}
-              >
-                Clear data
-              </button>
+            </div>
+          </section>
+
+          {/* About */}
+          <section
+            className="p-5 rounded-lg"
+            style={{ background: 'var(--bw-bg-surface)', border: '1px solid var(--bw-border-subtle)' }}
+          >
+            <h2 className="text-sm font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-primary)' }}>
+              <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-text-quaternary)' }}>info</span>
+              About Bowser
+            </h2>
+            <div className="space-y-4">
+              <p className="text-[13px] leading-relaxed" style={{ color: 'var(--bw-text-tertiary)' }}>
+                Bowser is an experimental AI browser. Pages are generated in real time by Gemini — they don't exist until you ask for them. Results may vary.
+              </p>
+              {onShowOnboarding && (
+                <button
+                  onClick={handleResetOnboarding}
+                  className="text-[13px] font-medium transition-colors"
+                  style={{ color: 'var(--bw-accent)' }}
+                >
+                  Replay welcome tour
+                </button>
+              )}
             </div>
           </section>
         </div>
