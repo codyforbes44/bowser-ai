@@ -262,8 +262,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 onKeyDown={handleKeyDown}
                 className="omnibar-input pr-10"
                 style={error ? { borderColor: 'var(--bw-red)', background: 'var(--bw-red-subtle)' } : undefined}
-                placeholder="Search or describe a page…"
-                aria-label="Search, enter a URL, or describe a page"
+                placeholder={isBrowserMode ? 'Search or go to a URL' : 'Ask anything…'}
+                aria-label="Search or enter a URL"
               />
               <button
                 type="submit"

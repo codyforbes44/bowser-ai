@@ -292,6 +292,8 @@ const BowserApp: React.FC = () => {
             onClose={() => setSidePanelOpen(false)}
             pageHtml={sidePanelHtml}
             tabKind={activeTab.tabKind}
+            webTabUrl={activeTab.tabKind === 'web' ? activeTab.browserUrl : undefined}
+            webTabTitle={activeTab.tabKind === 'web' ? activeTab.breadcrumb.sitename : undefined}
           />
         }
         viewportRef={viewportRef}
@@ -309,6 +311,9 @@ const BowserApp: React.FC = () => {
             onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
             history={history}
             onShowOnboarding={() => setShowOnboarding(true)}
+            isBrowserMode={activeTab.tabKind === 'web'}
+            onToggleBrowserMode={handleToggleBrowserMode}
+            onOpenSettings={() => navigateToSystemPage('settings')}
           />
         ) : activeTab.tabKind === 'history' ? (
           <HistoryTab
