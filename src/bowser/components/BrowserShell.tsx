@@ -96,6 +96,8 @@ interface BrowserShellProps {
   onToggleSidePanel?: () => void;
   sidePanel?: React.ReactNode;
   viewportRef?: React.RefObject<HTMLDivElement | null>;
+  webHistoryPosition?: number;
+  webHistoryTotal?: number;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
