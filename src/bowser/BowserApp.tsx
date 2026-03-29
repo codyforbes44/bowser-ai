@@ -165,6 +165,7 @@ const BowserApp: React.FC = () => {
         browserUrl: undefined,
         currentIndex: -1, history: [], loading: false, generatedContent: '',
         breadcrumb: { sitename: '', page: '' },
+        webHistory: [], webHistoryIndex: -1,
       };
     });
   }, [activeTab, updateTabById]);
