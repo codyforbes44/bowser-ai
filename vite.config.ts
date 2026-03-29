@@ -27,9 +27,9 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Bowser",
         short_name: "Bowser",
-        description: "An AI-powered browser that generates websites in real-time with Gemini",
-        theme_color: "#1a1a2e",
-        background_color: "#1a1a2e",
+        description: "The AI-first browser that thinks with you",
+        theme_color: "#0f0f0f",
+        background_color: "#0f0f0f",
         display: "standalone",
         orientation: "any",
         start_url: "/",
