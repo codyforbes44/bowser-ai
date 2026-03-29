@@ -20,6 +20,8 @@ const BowserApp: React.FC = () => {
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
 
+  useEffect(() => { applyBowserTheme(getEffectiveTheme()); }, []);
+
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   const activeTab = tabs[activeTabIndex];
