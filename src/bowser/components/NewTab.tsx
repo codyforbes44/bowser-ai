@@ -368,7 +368,7 @@ const ReturningUserView: React.FC<{
 
 /* ─── Shared Omnibox ─── */
 
-const Omnibox: React.FC<{
+interface OmniboxProps {
   prompt: string;
   setPrompt: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -376,7 +376,10 @@ const Omnibox: React.FC<{
   isGrounded: boolean;
   onToggleGrounding: () => void;
   onToggleBrowserMode?: () => void;
-}> = ({ prompt, setPrompt, onSubmit, isBrowserMode, isGrounded, onToggleGrounding, onToggleBrowserMode }) => (
+}
+
+const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, isGrounded, onToggleGrounding, onToggleBrowserMode }, ref) => (
+  <div ref={ref}>
   <>
     <form onSubmit={onSubmit} className="newtab-form">
       <div className="newtab-input-row">
