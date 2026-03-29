@@ -46,7 +46,12 @@ export const NewTab: React.FC<NewTabProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) onCreatePage(prompt.trim());
+    if (!prompt.trim()) return;
+    if (localBrowserMode) {
+      onWebNavigate(prompt.trim());
+    } else {
+      onCreatePage(prompt.trim());
+    }
   };
 
   const topBookmarks = bookmarks.slice(0, 8);
