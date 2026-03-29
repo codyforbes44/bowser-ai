@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { AddressBar } from './AddressBar';
-import { Breadcrumb, GroundingSource, Tab, TokenCount, Bookmark, BookmarkFolder, TabKind } from '../types';
+import { Breadcrumb, GroundingSource, Tab, TokenCount } from '../types';
 
 const AnimatedNumber: React.FC<{ value: number; prefix?: string; prefixVisible?: boolean; animate?: boolean }> = ({ value, prefix, prefixVisible = true, animate = true }) => {
   const [displayed, setDisplayed] = useState(0);
@@ -88,13 +88,6 @@ interface BrowserShellProps {
   tokenCount: TokenCount | null;
   isBookmarked: boolean;
   onToggleBookmark: () => void;
-  bookmarks: Bookmark[];
-  bookmarkFolders: BookmarkFolder[];
-  onCreateBookmarkFolder: (name: string) => void;
-  onRenameBookmarkFolder: (id: string, newName: string) => void;
-  onDeleteBookmarkFolder: (id: string) => void;
-  onMoveBookmark: (url: string, folderId: string | undefined) => void;
-  onNavigateToBookmark: (url: string, tabKind: TabKind) => void;
   canBookmark: boolean;
 }
 
@@ -189,35 +182,38 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
     <div className="browser-shell" ref={shellRef}>
       <div className="tab-bar">
         <div className="tab-list" role="tablist">
-          {tabs.map((tab, index) => (
-            <div
-              key={tab.id}
-              className={`tab ${index === activeTabIndex ? `active-tab ${getTabAccentClass(tab)}` : ''}`}
-              onClick={() => onSwitchTab(index)}
-              role="tab"
-              tabIndex={0}
-              aria-selected={index === activeTabIndex}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSwitchTab(index);
-                }
-              }}
-            >
-              {tab.loading ? (
-                <div className="tab-spinner" aria-hidden="true" />
-              ) : (
-                <span className="material-symbols-outlined tab-kind-icon">{getTabIcon(tab)}</span>
-              )}
-              <span className="tab-title">{getTabTitle(tab)}</span>
-              <button
-                className="tab-close"
-                onClick={(e) => { e.stopPropagation(); onCloseTab(index); }}
-                title="Close tab"
-                aria-label="Close tab"
-              >×</button>
-            </div>
-          ))}
+          {tabs.map((tab, index) => {
+            const tabTitle = getTabTitle(tab);
+            return (
+              <div
+                key={tab.id}
+                className={`tab ${index === activeTabIndex ? `active-tab ${getTabAccentClass(tab)}` : ''}`}
+                onClick={() => onSwitchTab(index)}
+                role="tab"
+                tabIndex={0}
+                aria-selected={index === activeTabIndex}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSwitchTab(index);
+                  }
+                }}
+              >
+                {tab.loading ? (
+                  <div className="tab-spinner" aria-hidden="true" />
+                ) : (
+                  <span className="material-symbols-outlined tab-kind-icon">{getTabIcon(tab)}</span>
+                )}
+                <span className="tab-title">{tabTitle}</span>
+                <button
+                  className="tab-close"
+                  onClick={(e) => { e.stopPropagation(); onCloseTab(index); }}
+                  title={`Close ${tabTitle} tab`}
+                  aria-label={`Close ${tabTitle} tab`}
+                >×</button>
+              </div>
+            );
+          })}
           <button className="tab-new" onClick={onNewTab} title="New Tab" aria-label="New Tab">
             <span>+</span>
           </button>
@@ -269,7 +265,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         canBookmark={canBookmark}
       />
 
-      <div className="browser-viewport">
+      <div className="browser-viewport" role="tabpanel">
         {children}
       </div>
 

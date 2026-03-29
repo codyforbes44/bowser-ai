@@ -26,9 +26,17 @@ const BowserApp: React.FC = () => {
 
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
-  const activeTab = tabs[activeTabIndex];
+  // Guard activeTab derivation against stale index
+  const safeIndex = Math.min(activeTabIndex, tabs.length - 1);
+  const activeTab = tabs[safeIndex];
   const currentPage = activeTab.currentIndex >= 0 ? activeTab.history[activeTab.currentIndex] : null;
 
+  // ID-based tab updater — resolves index at update time, not call time
+  const updateTabById = useCallback((tabId: string, updater: (tab: Tab) => Tab) => {
+    setTabs(prev => prev.map(t => t.id === tabId ? updater(t) : t));
+  }, []);
+
+  // Legacy index-based updater for cases where we know the index is stable (same render frame)
   const updateTab = useCallback((tabIndex: number, updater: (tab: Tab) => Tab) => {
     setTabs(prev => prev.map((t, i) => i === tabIndex ? updater(t) : t));
   }, []);
@@ -38,17 +46,19 @@ const BowserApp: React.FC = () => {
     currentHtml: string | null,
     fallbackBreadcrumb: Breadcrumb,
     pushHistory: boolean = true,
-    formState?: FormFieldState[]
+    formState?: FormFieldState[],
+    targetTabId?: string,
   ) => {
-    const tabIndex = activeTabIndex;
-    const tabId = tabs[tabIndex].id;
+    // Capture tab ID at call time — immune to tab switching
+    const tabId = targetTabId || tabs[activeTabIndex]?.id;
+    if (!tabId) return;
 
     const existingController = abortControllersRef.current.get(tabId);
     if (existingController) existingController.abort();
     const controller = new AbortController();
     abortControllersRef.current.set(tabId, controller);
 
-    updateTab(tabIndex, tab => ({
+    updateTabById(tabId, tab => ({
       ...tab,
       loading: true,
       loadingMessage: 'Streaming website from Gemini 3.1 Flash',
@@ -75,7 +85,7 @@ const BowserApp: React.FC = () => {
         if (chunk.startsWith('__TOKEN__')) {
           try {
             const tokenData = JSON.parse(chunk.replace('__TOKEN__', ''));
-            updateTab(tabIndex, tab => ({ ...tab, tokenCount: tokenData }));
+            updateTabById(tabId, tab => ({ ...tab, tokenCount: tokenData }));
           } catch { }
           continue;
         }
@@ -84,14 +94,14 @@ const BowserApp: React.FC = () => {
           try {
             const meta = JSON.parse(chunk.replace('__META__', ''));
             pageTokenCount = meta.tokenCount;
-            updateTab(tabIndex, tab => ({ ...tab, tokenCount: pageTokenCount }));
+            updateTabById(tabId, tab => ({ ...tab, tokenCount: pageTokenCount }));
             if (meta.groundingSources?.length) {
               pageGroundingSources = meta.groundingSources;
-              updateTab(tabIndex, tab => ({ ...tab, groundingSources: meta.groundingSources }));
+              updateTabById(tabId, tab => ({ ...tab, groundingSources: meta.groundingSources }));
             }
             if (meta.searchEntryPointHtml) {
               pageSearchEntryPointHtml = meta.searchEntryPointHtml;
-              updateTab(tabIndex, tab => ({ ...tab, searchEntryPointHtml: meta.searchEntryPointHtml }));
+              updateTabById(tabId, tab => ({ ...tab, searchEntryPointHtml: meta.searchEntryPointHtml }));
             }
           } catch { }
           continue;
@@ -105,7 +115,7 @@ const BowserApp: React.FC = () => {
           if (extractedBreadcrumb) titleExtracted = true;
         }
 
-        updateTab(tabIndex, tab => ({
+        updateTabById(tabId, tab => ({
           ...tab,
           generatedContent: currentFullHtml,
           loadingMessage: 'Streaming website from Gemini 3.1 Flash',
@@ -132,7 +142,7 @@ const BowserApp: React.FC = () => {
         searchEntryPointHtml: pageSearchEntryPointHtml,
       };
 
-      updateTab(tabIndex, tab => {
+      updateTabById(tabId, tab => {
         if (pushHistory) {
           const newHistory = [...tab.history.slice(0, tab.currentIndex + 1), newPage];
           return { ...tab, history: newHistory, currentIndex: newHistory.length - 1, breadcrumb: finalBreadcrumb, tokenCount: pageTokenCount };
@@ -146,25 +156,25 @@ const BowserApp: React.FC = () => {
     } catch (e: any) {
       if (e?.name === 'AbortError' || controller.signal.aborted) return;
       console.error('Generation failed', e);
-      updateTab(tabIndex, tab => ({
+      updateTabById(tabId, tab => ({
         ...tab,
         breadcrumb: fallbackBreadcrumb,
         generatedContent: `<div class="p-10"><h1>Error</h1><p>Failed to generate page</p></div>`,
       }));
     } finally {
       if (abortControllersRef.current.get(tabId) === controller) {
-        updateTab(tabIndex, tab => ({ ...tab, loading: false, loadingMessage: '' }));
+        updateTabById(tabId, tab => ({ ...tab, loading: false, loadingMessage: '' }));
         abortControllersRef.current.delete(tabId);
       }
     }
-  }, [isGrounded, activeTabIndex, tabs, updateTab]);
+  }, [isGrounded, activeTabIndex, tabs, updateTabById]);
 
   const handleStop = useCallback(() => {
     const tabId = activeTab.id;
     const controller = abortControllersRef.current.get(tabId);
     if (controller) { controller.abort(); abortControllersRef.current.delete(tabId); }
-    updateTab(activeTabIndex, tab => ({ ...tab, loading: false, loadingMessage: '' }));
-  }, [activeTab, activeTabIndex, updateTab]);
+    updateTabById(tabId, tab => ({ ...tab, loading: false, loadingMessage: '' }));
+  }, [activeTab, updateTabById]);
 
   const handleCreate = useCallback((prompt: string) => {
     const fallback: Breadcrumb = { sitename: siteNameFromPrompt(prompt), page: 'Home' };
@@ -203,6 +213,11 @@ const BowserApp: React.FC = () => {
     const tab = tabs[activeTabIndex];
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
+    if (decision.error) {
+      // Error is now handled by AddressBar via parseOmniboxInput
+      return;
+    }
+
     if (decision.kind === 'web') {
       updateTab(activeTabIndex, t => ({
         ...t, tabKind: 'web', browserUrl: decision.url,
@@ -236,7 +251,7 @@ const BowserApp: React.FC = () => {
   const handleBack = useCallback(() => {
     if (activeTab.tabKind === 'web') return;
     if (activeTab.currentIndex > 0) {
-      updateTab(activeTabIndex, tab => {
+      updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex - 1;
         const page = tab.history[newIndex];
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
@@ -244,12 +259,12 @@ const BowserApp: React.FC = () => {
       const page = activeTab.history[activeTab.currentIndex - 1];
       if (page) setIsGrounded(page.isGrounded);
     }
-  }, [activeTab, activeTabIndex, updateTab]);
+  }, [activeTab, updateTabById]);
 
   const handleForward = useCallback(() => {
     if (activeTab.tabKind === 'web') return;
     if (activeTab.currentIndex < activeTab.history.length - 1) {
-      updateTab(activeTabIndex, tab => {
+      updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex + 1;
         const page = tab.history[newIndex];
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
@@ -257,17 +272,17 @@ const BowserApp: React.FC = () => {
       const page = activeTab.history[activeTab.currentIndex + 1];
       if (page) setIsGrounded(page.isGrounded);
     }
-  }, [activeTab, activeTabIndex, updateTab]);
+  }, [activeTab, updateTabById]);
 
   const handleRefresh = useCallback(() => {
     if (activeTab.tabKind === 'web') {
-      updateTab(activeTabIndex, t => ({ ...t, navigationId: t.navigationId + 1 }));
+      updateTabById(activeTab.id, t => ({ ...t, navigationId: t.navigationId + 1 }));
       return;
     }
     if (currentPage) {
       generate(currentPage.prompt, currentPage.contextHtml, currentPage.breadcrumb, false);
     }
-  }, [currentPage, generate, activeTab, activeTabIndex, updateTab]);
+  }, [currentPage, generate, activeTab, updateTabById]);
 
   const handleHome = useCallback(() => {
     const tabId = activeTab.id;
@@ -275,32 +290,44 @@ const BowserApp: React.FC = () => {
     if (controller) { controller.abort(); abortControllersRef.current.delete(tabId); }
 
     if (activeTab.tabKind === 'web') {
-      updateTab(activeTabIndex, tab => ({
+      updateTabById(tabId, tab => ({
         ...tab, browserUrl: 'https://www.google.com/webhp?igu=1',
         breadcrumb: { sitename: 'https://www.google.com/webhp?igu=1', page: '' }, navigationId: tab.navigationId + 1
       }));
       return;
     }
 
-    updateTab(activeTabIndex, tab => ({
+    updateTabById(tabId, tab => ({
       ...tab, tabKind: 'new-tab', currentIndex: -1, loading: false, loadingMessage: '',
       generatedContent: '', breadcrumb: { sitename: '', page: '' }, tokenCount: null,
       groundingSources: [], searchEntryPointHtml: '',
     }));
-  }, [activeTab, activeTabIndex, updateTab]);
+  }, [activeTab, updateTabById]);
 
+  // Atomic new tab: single state update to avoid race between setTabs and setActiveTabIndex
   const handleNewTab = useCallback(() => {
     const newTab = createTab('new-tab');
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabIndex(tabs.length);
-  }, [tabs.length]);
+    setTabs(prev => {
+      const next = [...prev, newTab];
+      // Defer index update to after tabs update, using the known length
+      queueMicrotask(() => setActiveTabIndex(next.length - 1));
+      return next;
+    });
+  }, []);
 
+  // Actually creates an AI-mode tab, not a duplicate of handleNewTab
   const handleNewAiTab = useCallback(() => {
     const newTab = createTab('new-tab');
-    setTabs(prev => [...prev, newTab]);
-    setActiveTabIndex(tabs.length);
-  }, [tabs.length]);
+    // Mark as AI kind so the tab opens in AI mode
+    newTab.tabKind = 'ai';
+    setTabs(prev => {
+      const next = [...prev, newTab];
+      queueMicrotask(() => setActiveTabIndex(next.length - 1));
+      return next;
+    });
+  }, []);
 
+  // Atomic close: compute new index deterministically before setting state
   const handleCloseTab = useCallback((index: number) => {
     const closingTab = tabs[index];
     const controller = abortControllersRef.current.get(closingTab.id);
@@ -311,10 +338,19 @@ const BowserApp: React.FC = () => {
       setTabs([newTab]);
       setActiveTabIndex(0);
     } else {
-      setTabs(prev => prev.filter((_, i) => i !== index));
-      if (activeTabIndex >= index && activeTabIndex > 0) {
-        setActiveTabIndex(prev => prev - 1);
+      const newTabs = tabs.filter((_, i) => i !== index);
+      // Compute new active index deterministically
+      let newActiveIndex: number;
+      if (activeTabIndex === index) {
+        // Closed the active tab — prefer the tab to the right, else left
+        newActiveIndex = Math.min(index, newTabs.length - 1);
+      } else if (activeTabIndex > index) {
+        newActiveIndex = activeTabIndex - 1;
+      } else {
+        newActiveIndex = activeTabIndex;
       }
+      setTabs(newTabs);
+      setActiveTabIndex(newActiveIndex);
     }
   }, [tabs, activeTabIndex]);
 
@@ -323,7 +359,7 @@ const BowserApp: React.FC = () => {
   }, []);
 
   const handleToggleBrowserMode = useCallback(() => {
-    updateTab(activeTabIndex, tab => {
+    updateTabById(activeTab.id, tab => {
       const newKind = tab.tabKind === 'web' ? 'ai' : 'web';
       return {
         ...tab, tabKind: newKind,
@@ -332,7 +368,7 @@ const BowserApp: React.FC = () => {
         breadcrumb: { sitename: '', page: '' },
       };
     });
-  }, [activeTabIndex, updateTab]);
+  }, [activeTab, updateTabById]);
 
   const handleToggleBookmark = useCallback(() => {
     const tab = tabs[activeTabIndex];
@@ -354,26 +390,26 @@ const BowserApp: React.FC = () => {
   }, [tabs, activeTabIndex, toggleBookmark]);
 
   const navigateToSystemPage = useCallback((kind: TabKind) => {
-    updateTab(activeTabIndex, t => ({
+    updateTabById(activeTab.id, t => ({
       ...t, tabKind: kind, browserUrl: undefined,
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: kind, page: '' },
     }));
-  }, [activeTabIndex, updateTab]);
+  }, [activeTab, updateTabById]);
 
   const navigateToBookmarkUrl = useCallback((url: string, tabKind: TabKind) => {
     if (tabKind === 'web') {
-      updateTab(activeTabIndex, tab => ({
+      updateTabById(activeTab.id, tab => ({
         ...tab, tabKind: 'web', browserUrl: url, currentIndex: -1, history: [],
         loading: false, generatedContent: '', breadcrumb: { sitename: url, page: '' },
         navigationId: tab.navigationId + 1
       }));
     } else {
-      updateTab(activeTabIndex, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
+      updateTabById(activeTab.id, tab => ({ ...tab, tabKind: 'ai', browserUrl: undefined }));
       const fallback: Breadcrumb = { sitename: url, page: 'Home' };
       generate(url, null, fallback, true);
     }
-  }, [activeTabIndex, updateTab, generate]);
+  }, [activeTab, updateTabById, generate]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -444,7 +480,7 @@ const BowserApp: React.FC = () => {
         groundingSources={activeTab.groundingSources}
         searchEntryPointHtml={activeTab.searchEntryPointHtml}
         tabs={tabs}
-        activeTabIndex={activeTabIndex}
+        activeTabIndex={safeIndex}
         onNewTab={handleNewTab}
         onCloseTab={handleCloseTab}
         onSwitchTab={handleSwitchTab}
@@ -456,18 +492,11 @@ const BowserApp: React.FC = () => {
         isBookmarked={isBookmarked(activeTab.tabKind === 'web' ? (activeTab.browserUrl || '') : (currentPage?.prompt || ''))}
         onToggleBookmark={handleToggleBookmark}
         canBookmark={!isNewTab && activeTab.tabKind !== 'history' && activeTab.tabKind !== 'bookmarks' && activeTab.tabKind !== 'settings'}
-        bookmarks={bookmarks}
-        bookmarkFolders={bookmarkFolders}
-        onCreateBookmarkFolder={createFolder}
-        onRenameBookmarkFolder={renameFolder}
-        onDeleteBookmarkFolder={deleteFolder}
-        onMoveBookmark={moveBookmark}
-        onNavigateToBookmark={navigateToBookmarkUrl}
       >
         {isNewTab ? (
           <NewTab
             onCreatePage={(prompt) => {
-              updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
+              updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
               handleCreate(prompt);
             }}
             isGrounded={isGrounded}
@@ -485,7 +514,7 @@ const BowserApp: React.FC = () => {
               if (tabKind === 'web') {
                 handleOmnibarNavigate('create', url);
               } else {
-                updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
+                updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
                 handleCreate(url);
               }
             }}
@@ -509,6 +538,7 @@ const BowserApp: React.FC = () => {
             src={activeTab.browserUrl}
             className="w-full h-full border-none bg-white"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            title="Web content"
           />
         ) : (
           <Sandbox
