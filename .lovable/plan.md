@@ -1,21 +1,49 @@
 
-# Build "Bowser" Browser
+
+# Make Bowser a Best-in-Class Installable PWA
 
 ## Overview
-Extract the uploaded `bowser-main.zip` repository and integrate its code into the current Lovable project to build a browser application called "Bowser."
+Add PWA support so Bowser can be installed to the home screen on any device, with proper branding, icons, theme colors, and offline awareness. Per Lovable guidelines, we'll use `vite-plugin-pwa` with safeguards to avoid preview/iframe issues.
+
+**Important**: PWA install and offline features will only work on the **published** site, not in the Lovable editor preview.
 
 ## Steps
 
-1. **Extract the zip archive** — Unzip `bowser-main.zip` to a temporary directory and inspect the project structure (files, components, assets, dependencies).
+### 1. Install `vite-plugin-pwa`
+Add `vite-plugin-pwa` as a dependency.
 
-2. **Analyze the source code** — Review `App.tsx` and all other components/files to understand the app's architecture, routing, styling, and any dependencies needed.
+### 2. Create PWA icons
+Generate multiple icon sizes in `public/`:
+- `pwa-192x192.png` and `pwa-512x512.png` (maskable + any)
+- Use a Bowser-themed icon (browser compass/paw icon in the app's blue accent color)
 
-3. **Install dependencies** — Add any additional npm packages required by the Bowser project that aren't already in the current project.
+### 3. Update `vite.config.ts`
+Add `VitePWA` plugin with:
+- `registerType: "autoUpdate"`
+- `devOptions: { enabled: false }` (no SW in dev)
+- `workbox.navigateFallbackDenylist: [/^\/~oauth/]`
+- Full `manifest` object: name "Bowser", short_name "Bowser", theme_color `#1a1a2e`, background_color `#1a1a2e`, display `standalone`, icons array
 
-4. **Integrate source files** — Copy components, pages, hooks, utilities, assets, and styles from the extracted repo into the appropriate locations in the current project (`src/`).
+### 4. Add iframe/preview guard in `src/main.tsx`
+Prevent service worker registration and unregister existing SWs when running inside an iframe or on a Lovable preview domain.
 
-5. **Update routing and entry points** — Update `App.tsx` and `Index.tsx` to use the Bowser app's components and routing structure.
+### 5. Update `index.html`
+- Set `<title>` to "Bowser"
+- Add `<meta name="theme-color" content="#1a1a2e">`
+- Add `<link rel="apple-touch-icon" href="/pwa-192x192.png">`
+- Add `<meta name="apple-mobile-web-app-capable" content="yes">`
+- Add `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
 
-6. **Update styles** — Merge any custom CSS/Tailwind configuration from the Bowser project into `index.css` and `tailwind.config.ts`.
+### 6. Create an install prompt component
+Build a small `InstallPrompt` component that:
+- Listens for the `beforeinstallprompt` event
+- Shows a styled banner/button inviting the user to install Bowser
+- Dismisses after install or user decline
+- Integrates into the New Tab page or as a subtle bar
 
-7. **Test and fix** — Verify the app builds and renders correctly, fixing any import paths or compatibility issues.
+## Technical notes
+- No offline-first caching of external sites (the browser loads live URLs in iframes)
+- Precache only the app shell (HTML, JS, CSS, icons)
+- The manifest `start_url` will be `/`
+- `display: standalone` removes browser chrome for a native feel
+
