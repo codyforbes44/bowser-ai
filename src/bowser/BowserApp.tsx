@@ -14,7 +14,7 @@ import { useHistory } from './store/history';
 import { useTabManager } from './hooks/useTabManager';
 import { useAIGenerate } from './hooks/useAIGenerate';
 import { useOmnibox } from './hooks/useOmnibox';
-import { getTabLimit, applyFontScale, getFontSize, getAutoFullscreen } from './hooks/useBowserSettings';
+import { getTabLimit, applyFontScale, getFontSize } from './hooks/useBowserSettings';
 import { useSwipeGesture } from './hooks/useSwipeGesture';
 
 const HistoryTab = lazy(() => import('./components/HistoryTab').then(m => ({ default: m.HistoryTab })));
@@ -52,9 +52,9 @@ const BowserApp: React.FC = () => {
 
   // Auto-fullscreen on first user interaction
   useEffect(() => {
-    // Skip in iframes (Lovable preview) or if user disabled it
+    // Skip in iframes (Lovable preview)
     const isInIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-    if (isInIframe || !getAutoFullscreen()) return;
+    if (isInIframe) return;
 
     const trigger = () => {
       if (!document.fullscreenElement) {
