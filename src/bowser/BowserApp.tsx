@@ -7,6 +7,7 @@ import { AiSidePanel } from './components/AiSidePanel';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
+import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
@@ -403,12 +404,22 @@ const BowserApp: React.FC = () => {
             />
           </Suspense>
         ) : activeTab.tabKind === 'web' ? (
-          <iframe
+          <WebProxy
             key={activeTab.navigationId}
-            src={activeTab.browserUrl}
-            className="w-full h-full border-none bg-white"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-            title="Web content"
+            url={activeTab.browserUrl || ''}
+            navigationId={activeTab.navigationId}
+            onNavigate={(newUrl: string) => {
+              updateTabById(activeTab.id, tab => {
+                const newWebHistory = [...tab.webHistory.slice(0, tab.webHistoryIndex + 1), newUrl];
+                return {
+                  ...tab, browserUrl: newUrl,
+                  breadcrumb: { sitename: newUrl, page: '' },
+                  navigationId: tab.navigationId + 1,
+                  webHistory: newWebHistory,
+                  webHistoryIndex: newWebHistory.length - 1,
+                };
+              });
+            }}
           />
         ) : (
           <Sandbox
