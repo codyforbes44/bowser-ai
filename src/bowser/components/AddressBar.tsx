@@ -140,8 +140,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
     setError(null);
     addToHistory(decision.url || query);
-
-    // Delegate all routing decisions to BowserApp via onNavigate
     onNavigate('create', query);
     return true;
   };
@@ -205,16 +203,16 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   return (
     <div className="address-bar">
       <div className="nav-buttons">
-        <button onClick={onBack} disabled={!canGoBack} className={`nav-btn ${!canGoBack ? 'disabled' : ''}`} title="Go back" aria-label="Go back">
+        <button onClick={onBack} disabled={!canGoBack} className={`nav-btn ${!canGoBack ? 'disabled' : ''}`} title="Back" aria-label="Go back">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Go forward" aria-label="Go forward">
+        <button onClick={onForward} disabled={!canGoForward} className={`nav-btn ${!canGoForward ? 'disabled' : ''}`} title="Forward" aria-label="Go forward">
           <span className="material-symbols-outlined">arrow_forward</span>
         </button>
-        <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Refresh'} aria-label={isLoading ? 'Stop loading' : 'Refresh'}>
+        <button onClick={isLoading ? onStop : onRefresh} className="nav-btn" title={isLoading ? 'Stop' : 'Reload'} aria-label={isLoading ? 'Stop loading' : 'Reload page'}>
           <span className="material-symbols-outlined">{isLoading ? 'close' : 'refresh'}</span>
         </button>
-        <button onClick={onHome} className="nav-btn" title="Home" aria-label="Home">
+        <button onClick={onHome} className="nav-btn" title="New tab" aria-label="New tab">
           <span className="material-symbols-outlined">home</span>
         </button>
       </div>
@@ -236,7 +234,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 onKeyDown={handleKeyDown}
                 className="omnibar-input pr-10"
                 style={error ? { borderColor: 'var(--bw-red)', background: 'var(--bw-red-subtle)' } : undefined}
-                aria-label="Address bar — enter a URL or prompt"
+                placeholder="Search or describe a page…"
+                aria-label="Search, enter a URL, or describe a page"
               />
               <button
                 type="submit"
@@ -245,7 +244,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
                 title="Go"
-                aria-label="Navigate"
+                aria-label="Go"
                 onMouseDown={(e) => { e.preventDefault(); }}
               >
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -270,7 +269,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <div
               className="absolute top-full left-0 right-0 mt-1 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto"
               role="listbox"
-              aria-label="Search history"
+              aria-label="Recent searches"
               style={{
                 background: 'var(--bw-bg-elevated)',
                 border: '1px solid var(--bw-border)',
@@ -303,8 +302,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                       e.stopPropagation();
                       removeFromHistory(item);
                     }}
-                    title="Remove from history"
-                    aria-label={`Remove ${item} from search history`}
+                    title="Remove"
+                    aria-label={`Remove "${item}" from recent searches`}
                   >
                     <span className="material-symbols-outlined text-[13px]">close</span>
                   </button>
@@ -336,6 +335,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         style={{ border: '1px solid var(--bw-border)', background: 'transparent' }}
         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bw-bg-hover)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        title={isBrowserMode ? 'Switch to AI mode — generate pages from descriptions' : 'Switch to Web mode — browse real websites'}
         aria-label={`Switch to ${isBrowserMode ? 'AI' : 'Web'} mode`}
       >
         <span
@@ -364,8 +364,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         onClick={onToggleGrounding}
         className="nav-btn"
         style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
-        title={isGrounded ? 'Disable real-time browsing' : 'Enable real-time browsing'}
-        aria-label={isGrounded ? 'Disable real-time browsing' : 'Enable real-time browsing'}
+        title={isGrounded ? 'Live data on — pages include real-time web results' : 'Live data off — pages are generated from AI knowledge only'}
+        aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
         aria-pressed={isGrounded}
       >
         <span className="material-symbols-outlined">language</span>
@@ -378,7 +378,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         {menuOpen && (
           <div className="dropdown-menu" role="menu">
             <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[13px]">Real-time browsing</span>
+              <span className="text-[13px]">Live data</span>
               <div
                 className={`toggle-track ${isGrounded ? 'active' : ''}`}
                 onClick={onToggleGrounding}

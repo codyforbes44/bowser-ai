@@ -86,7 +86,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="command-palette-input"
-            placeholder="Type a command…"
+            placeholder="What do you need?"
             aria-label="Search commands"
             role="combobox"
             aria-expanded="true"

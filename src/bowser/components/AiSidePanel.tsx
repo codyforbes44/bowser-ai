@@ -9,10 +9,10 @@ interface AiSidePanelProps {
   tabKind: TabKind;
 }
 
-const ACTIONS: { id: AnalysisAction; label: string; icon: string }[] = [
-  { id: 'summarize', label: 'Summarize', icon: 'summarize' },
-  { id: 'key-points', label: 'Key points', icon: 'list' },
-  { id: 'simplify', label: 'Simplify', icon: 'edit_note' },
+const ACTIONS: { id: AnalysisAction; label: string; icon: string; description: string }[] = [
+  { id: 'summarize', label: 'Summarize', icon: 'summarize', description: 'Get a concise overview' },
+  { id: 'key-points', label: 'Key points', icon: 'list', description: 'Extract the main takeaways' },
+  { id: 'simplify', label: 'Simplify', icon: 'edit_note', description: 'Rewrite in plain language' },
 ];
 
 export const AiSidePanel: React.FC<AiSidePanelProps> = ({
@@ -38,7 +38,6 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
     }
   }, [isOpen]);
 
-  // Auto-scroll as content streams
   useEffect(() => {
     if (loading && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
@@ -67,7 +66,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
-        setError('Analysis could not be completed. Please try again.');
+        setError('Something went wrong. Please try again.');
       }
     } finally {
       if (abortRef.current === controller) {
@@ -91,13 +90,13 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <aside className="side-panel" role="complementary" aria-label="AI page analysis">
+    <aside className="side-panel" role="complementary" aria-label="Page assistant">
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-base" style={{ color: 'var(--bw-accent)' }} aria-hidden="true">auto_awesome</span>
           <span className="text-[13px] font-semibold" style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.01em' }}>
-            Page Analysis
+            Assistant
           </span>
         </div>
         <button
@@ -106,7 +105,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           style={{ color: 'var(--bw-text-quaternary)' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-          aria-label="Close side panel"
+          aria-label="Close panel"
         >
           <span className="material-symbols-outlined text-base" aria-hidden="true">close</span>
         </button>
@@ -116,23 +115,23 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
       {isWebTab ? (
         <div className="side-panel-empty" role="status">
           <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">lock</span>
-          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>Content not accessible</p>
+          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>Can't read this page</p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
-            Web pages in iframes can't be read due to browser security. Switch to AI mode to analyze generated content.
+            Browser security prevents reading external websites. Generate a page in AI mode to use the assistant.
           </p>
         </div>
       ) : !canAnalyze ? (
         <div className="side-panel-empty" role="status">
           <span className="material-symbols-outlined text-2xl mb-2" style={{ color: 'var(--bw-text-quaternary)', opacity: 0.6 }} aria-hidden="true">web</span>
-          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>No page to analyze</p>
+          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>Nothing to analyze yet</p>
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
-            Generate or navigate to an AI page first.
+            Generate a page first, then use the assistant to summarize, simplify, or ask questions about it.
           </p>
         </div>
       ) : (
         <>
           {/* Action buttons */}
-          <div className="side-panel-actions" role="toolbar" aria-label="Analysis actions">
+          <div className="side-panel-actions" role="toolbar" aria-label="Quick actions">
             {ACTIONS.map(action => (
               <button
                 key={action.id}
@@ -140,6 +139,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                 disabled={loading}
                 className={`side-panel-action ${activeAction === action.id ? 'active' : ''}`}
                 aria-pressed={activeAction === action.id}
+                title={action.description}
               >
                 <span className="material-symbols-outlined text-[14px]" aria-hidden="true">{action.icon}</span>
                 <span className="text-[12px]">{action.label}</span>
@@ -162,7 +162,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
               type="submit"
               disabled={loading || !question.trim()}
               className="side-panel-ask-btn"
-              aria-label="Submit question"
+              aria-label="Send"
             >
               <span className="material-symbols-outlined text-[14px]" aria-hidden="true">send</span>
             </button>
@@ -174,7 +174,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
               {loading && !response && (
                 <div className="flex items-center gap-2 py-2">
                   <div className="tab-spinner" aria-hidden="true" />
-                  <span className="text-[12px]" style={{ color: 'var(--bw-text-quaternary)' }}>Analyzing…</span>
+                  <span className="text-[12px]" style={{ color: 'var(--bw-text-quaternary)' }}>Working…</span>
                 </div>
               )}
               {error && !response && (
@@ -188,7 +188,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                   style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
-                  aria-label="Stop analysis"
+                  aria-label="Stop"
                 >
                   <span className="material-symbols-outlined text-[12px]" aria-hidden="true">stop</span>
                   Stop
@@ -198,7 +198,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           ) : (
             <div className="side-panel-hint">
               <p className="text-[11px] leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
-                Choose an action above or ask a question about the current page.
+                Choose an action or ask a question about this page.
               </p>
             </div>
           )}

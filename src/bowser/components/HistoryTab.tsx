@@ -15,13 +15,13 @@ function groupByDate(entries: HistoryEntry[]): { label: string; entries: History
   const weekStart = todayStart - 6 * 86400000;
 
   const groups: Record<string, HistoryEntry[]> = {};
-  const order = ['Today', 'Yesterday', 'This Week', 'Older'];
+  const order = ['Today', 'Yesterday', 'This week', 'Older'];
   for (const o of order) groups[o] = [];
 
   for (const entry of entries) {
     if (entry.timestamp >= todayStart) groups['Today'].push(entry);
     else if (entry.timestamp >= yesterdayStart) groups['Yesterday'].push(entry);
-    else if (entry.timestamp >= weekStart) groups['This Week'].push(entry);
+    else if (entry.timestamp >= weekStart) groups['This week'].push(entry);
     else groups['Older'].push(entry);
   }
 
@@ -93,7 +93,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
           <div className="text-center mt-24">
             <span className="material-symbols-outlined text-5xl mb-3" style={{ color: 'var(--bw-text-quaternary)' }}>history</span>
             <p className="text-sm font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>No history yet</p>
-            <p className="text-xs" style={{ color: 'var(--bw-text-quaternary)' }}>Pages you visit will appear here.</p>
+            <p className="text-xs" style={{ color: 'var(--bw-text-quaternary)' }}>Pages you visit will show up here.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center mt-20">

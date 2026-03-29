@@ -106,7 +106,7 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
               type="text"
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
-              placeholder="Folder name…"
+              placeholder="Folder name"
               className="bg-transparent border-none outline-none flex-1 text-sm"
               style={{ color: 'var(--bw-text-primary)' }}
               autoFocus
@@ -144,7 +144,7 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">home</span>
-                All
+                All bookmarks
               </span>
               <span className="text-[11px] tabular-nums" style={{ color: 'var(--bw-text-quaternary)' }}>
                 {folderCounts['__root__'] || 0}
@@ -222,7 +222,7 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
                 <span className="material-symbols-outlined text-5xl mb-3" style={{ color: 'var(--bw-text-quaternary)' }}>bookmarks</span>
                 <p className="text-sm font-medium mb-1" style={{ color: 'var(--bw-text-secondary)' }}>No bookmarks yet</p>
                 <p className="text-xs" style={{ color: 'var(--bw-text-quaternary)' }}>
-                  Click the ★ in the address bar to save pages here.
+                  Click the ★ in the address bar to save pages you want to revisit.
                 </p>
               </div>
             ) : displayedBookmarks.length === 0 ? (
@@ -271,7 +271,7 @@ export const BookmarksTab: React.FC<BookmarksTabProps> = ({
                         }}
                         onClick={e => e.stopPropagation()}
                       >
-                        <option value="">No Folder</option>
+                        <option value="">No folder</option>
                         {folders.map(f => (<option key={f.id} value={f.id}>{f.name}</option>))}
                       </select>
                       <button
