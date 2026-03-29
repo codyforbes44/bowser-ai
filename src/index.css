@@ -76,14 +76,9 @@
 
 /* ==========================================
    BOWSER DESIGN SYSTEM
-   
-   Brand tokens for the Bowser browser.
-   Neutral, restrained, browser-grade surfaces.
-   Inspired by Safari, Arc, Linear, Vercel.
    ========================================== */
 
 :root {
-  /* Bowser brand tokens — dark (default) */
   --bw-bg-app: #111111;
   --bw-bg-chrome: #191919;
   --bw-bg-surface: #1a1a1a;
@@ -98,10 +93,10 @@
   --bw-text-secondary: #a1a1a1;
   --bw-text-tertiary: #737373;
   --bw-text-quaternary: #525252;
-  --bw-accent: #3b82f6;
-  --bw-accent-hover: #60a5fa;
-  --bw-accent-subtle: rgba(59, 130, 246, 0.12);
-  --bw-accent-muted: rgba(59, 130, 246, 0.08);
+  --bw-accent: #6366f1;
+  --bw-accent-hover: #818cf8;
+  --bw-accent-subtle: rgba(99, 102, 241, 0.12);
+  --bw-accent-muted: rgba(99, 102, 241, 0.08);
   --bw-green: #22c55e;
   --bw-green-subtle: rgba(34, 197, 94, 0.12);
   --bw-red: #ef4444;
@@ -109,12 +104,14 @@
   --bw-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --bw-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --bw-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --bw-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.4);
   --bw-radius-sm: 4px;
   --bw-radius-md: 8px;
   --bw-radius-lg: 12px;
   --bw-radius-full: 9999px;
   --bw-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
   --bw-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --bw-font-scale: 1;
 }
 
 [data-bowser-theme="light"] {
@@ -132,10 +129,10 @@
   --bw-text-secondary: #525252;
   --bw-text-tertiary: #737373;
   --bw-text-quaternary: #a3a3a3;
-  --bw-accent: #2563eb;
-  --bw-accent-hover: #3b82f6;
-  --bw-accent-subtle: rgba(37, 99, 235, 0.08);
-  --bw-accent-muted: rgba(37, 99, 235, 0.05);
+  --bw-accent: #4f46e5;
+  --bw-accent-hover: #6366f1;
+  --bw-accent-subtle: rgba(79, 70, 229, 0.08);
+  --bw-accent-muted: rgba(79, 70, 229, 0.05);
   --bw-green: #16a34a;
   --bw-green-subtle: rgba(22, 163, 74, 0.08);
   --bw-red: #dc2626;
@@ -146,7 +143,7 @@
 }
 
 /* ==========================================
-   BOWSER GLOBAL RESET
+   GLOBAL & TOUCH
    ========================================== */
 
 .browser-shell {
@@ -154,16 +151,20 @@
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: var(--bw-bg-app);
   overflow: hidden;
   font-family: var(--bw-font);
+  font-size: calc(1rem * var(--bw-font-scale, 1));
   color: var(--bw-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  padding-top: env(safe-area-inset-top, 0);
 }
 
 /* ==========================================
-   TAB BAR
+   TAB BAR (Desktop - top)
    ========================================== */
 
 .tab-bar {
@@ -205,6 +206,7 @@
   background: transparent;
   position: relative;
   margin-top: auto;
+  touch-action: manipulation;
 }
 .tab:hover { background: var(--bw-bg-hover); }
 
@@ -213,7 +215,7 @@
 }
 .active-tab:hover { background: var(--bw-bg-app); }
 
-/* Tab accent indicators — subtle top line */
+/* Tab accent indicators */
 .active-tab::after {
   content: '';
   position: absolute;
@@ -370,6 +372,13 @@
   flex-shrink: 0;
 }
 
+.address-bar-mobile {
+  border-bottom: none;
+  border-top: 1px solid var(--bw-border);
+  padding: 6px;
+  gap: 4px;
+}
+
 .nav-buttons { display: flex; align-items: center; gap: 1px; }
 
 .nav-btn {
@@ -378,6 +387,8 @@
   justify-content: center;
   width: 30px;
   height: 30px;
+  min-width: 30px;
+  min-height: 30px;
   border: none;
   background: transparent;
   color: var(--bw-text-tertiary);
@@ -386,6 +397,13 @@
   transition: background 0.12s ease, color 0.12s ease;
   padding: 0;
   user-select: none;
+  touch-action: manipulation;
+}
+.nav-btn-mobile {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
 }
 .nav-btn:hover:not(.disabled) {
   background: var(--bw-bg-hover);
@@ -395,7 +413,7 @@
 .nav-btn.disabled { opacity: 0.25; cursor: default; }
 .nav-btn .material-symbols-outlined { font-size: 18px; }
 
-/* Focus states for keyboard navigation */
+/* Focus states */
 .nav-btn:focus-visible,
 .tab-bar-btn:focus-visible,
 .tab-new:focus-visible,
@@ -497,18 +515,31 @@
   z-index: 100;
   box-shadow: var(--bw-shadow-lg);
 }
+.dropdown-menu-mobile {
+  bottom: 100%;
+  top: auto;
+  margin-bottom: 4px;
+  margin-top: 0;
+}
 .dropdown-menu-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   font-size: 13px;
   color: var(--bw-text-primary);
   cursor: default;
   user-select: none;
   border-radius: var(--bw-radius-sm);
+  border: none;
+  background: transparent;
+  width: 100%;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 .dropdown-menu-item:hover { background: var(--bw-bg-hover); }
+.dropdown-menu-item:disabled { opacity: 0.3; }
 
 /* ==========================================
    GROUNDING ROW & SOURCES
@@ -639,6 +670,8 @@
   cursor: pointer;
   transition: color 0.12s ease;
   user-select: none;
+  min-width: 44px;
+  min-height: 44px;
 }
 .newtab-submit:hover { color: var(--bw-text-primary); }
 .newtab-submit .material-symbols-outlined { font-size: 20px; }
@@ -672,17 +705,14 @@
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   user-select: none;
   font-weight: 450;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 .newtab-btn:hover {
   background: var(--bw-bg-hover);
   color: var(--bw-text-primary);
   border-color: var(--bw-border-focus);
 }
-
-/* ==========================================
-   BOWSER BUILT-IN PAGE TOKENS
-   ========================================== */
-
 
 /* ==========================================
    COMMAND PALETTE
@@ -776,6 +806,7 @@
   cursor: pointer;
   border-radius: var(--bw-radius-sm);
   transition: background 0.08s;
+  min-height: 36px;
 }
 .command-palette-item:hover,
 .command-palette-item.selected {
@@ -817,6 +848,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .side-panel {
@@ -859,6 +891,8 @@
   cursor: pointer;
   transition: all 0.1s;
   font-family: var(--bw-font);
+  min-height: 36px;
+  touch-action: manipulation;
 }
 .side-panel-action:hover:not(:disabled) {
   background: var(--bw-bg-hover);
@@ -889,6 +923,7 @@
   font-family: var(--bw-font);
   outline: none;
   transition: border-color 0.15s;
+  min-height: 36px;
 }
 .side-panel-ask-input:focus { border-color: var(--bw-border-focus); }
 .side-panel-ask-input::placeholder { color: var(--bw-text-quaternary); }
@@ -900,6 +935,9 @@
   color: var(--bw-text-tertiary);
   cursor: pointer;
   transition: all 0.1s;
+  min-width: 44px;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 .side-panel-ask-btn:hover:not(:disabled) { background: var(--bw-bg-hover); color: var(--bw-accent); }
 .side-panel-ask-btn:disabled { opacity: 0.3; cursor: default; }
@@ -953,6 +991,23 @@
   min-width: 40px;
 }
 
+/* Settings section reusable */
+.settings-section {
+  padding: 20px;
+  border-radius: var(--bw-radius-lg);
+  background: var(--bw-bg-surface);
+  border: 1px solid var(--bw-border-subtle);
+}
+.settings-heading {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bw-text-primary);
+}
+
 /* ==========================================
    ANIMATIONS
    ========================================== */
@@ -970,22 +1025,165 @@
   border-radius: var(--bw-radius-sm);
 }
 
+/* Pulsing cursor for AI streaming */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.streaming-cursor::after {
+  content: '▊';
+  animation: blink 0.8s infinite;
+  color: var(--bw-accent);
+  font-size: 14px;
+}
+
 /* ==========================================
-   MOBILE
+   MOBILE: BOTTOM CHROME LAYOUT
    ========================================== */
 
-@media (max-width: 768px) {
+.mobile-bottom-chrome {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--bw-bg-chrome);
+  border-top: 1px solid var(--bw-border-subtle);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 8px;
+  height: 52px;
+  background: var(--bw-bg-chrome);
+}
+
+.tab-mobile {
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  border-radius: var(--bw-radius-md);
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+  position: relative;
+  margin-top: 0;
+}
+
+.tab-mobile.active-tab {
+  background: var(--bw-accent-subtle);
+  border-radius: var(--bw-radius-full);
+}
+
+.tab-mobile.active-tab::after {
+  display: none;
+}
+
+.tab-mobile.active-tab .tab-kind-icon {
+  color: var(--bw-accent);
+}
+
+.tab-overflow {
+  background: var(--bw-bg-hover);
+  border-radius: var(--bw-radius-full);
+}
+
+.tab-new-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  background: transparent;
+  color: var(--bw-text-quaternary);
+  border-radius: var(--bw-radius-full);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  padding: 0;
+  touch-action: manipulation;
+}
+.tab-new-mobile:hover {
+  background: var(--bw-bg-hover);
+  color: var(--bw-text-secondary);
+}
+
+/* Mobile bottom sheet for side panel */
+.mobile-bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  animation: cp-backdrop-in 0.15s ease-out;
+}
+
+.mobile-bottom-sheet {
+  width: 100%;
+  max-height: 80vh;
+  background: var(--bw-bg-surface);
+  border-radius: var(--bw-radius-lg) var(--bw-radius-lg) 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sheet-up 0.2s ease-out;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobile-bottom-sheet .side-panel {
+  width: 100%;
+  min-width: unset;
+  max-width: unset;
+  border-left: none;
+  flex: 1;
+}
+
+.mobile-bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--bw-text-quaternary);
+  border-radius: 2px;
+  margin: 8px auto;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ==========================================
+   RESPONSIVE: TABLET (768–1024)
+   ========================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .side-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 340px;
+    z-index: 200;
+    box-shadow: var(--bw-shadow-lg);
+  }
+  .browser-content-row { position: relative; }
+}
+
+/* ==========================================
+   RESPONSIVE: MOBILE (<768)
+   ========================================== */
+
+@media (max-width: 767px) {
   .browser-shell { border-radius: 0; }
-  .token-display { font-size: 11px; }
-  .token-icon { font-size: 12px !important; }
+
+  /* Hide desktop tab bar on mobile — mobile uses bottom tab bar */
   .tab-bar { display: none; }
-  .address-bar { padding: 6px; gap: 2px; }
-  .nav-buttons .nav-btn:nth-child(1),
-  .nav-buttons .nav-btn:nth-child(2),
-  .nav-buttons .nav-btn:nth-child(3) { display: none; }
-  .nav-btn { width: 36px; height: 36px; }
-  .omnibar-input { font-size: 16px; padding: 8px 14px; }
-  .newtab-content { padding: 0 20px 80px 20px; gap: 12px; }
+
+  .omnibar-input { font-size: 16px; padding: 10px 14px; }
+  .newtab-content { padding: 0 20px 100px 20px; gap: 12px; }
   .newtab-input { font-size: 16px; padding: 14px 16px; }
   .newtab-buttons { width: auto; }
   .newtab-btn { width: auto; padding: 10px 16px; font-size: 13px; }
@@ -993,18 +1191,4 @@
   .sources-container { max-width: 100%; margin-left: 0; }
   .search-widget-iframe { width: 100%; height: 40px; }
   .status-bar { font-size: 11px; padding: 2px 8px; }
-
-  /* Side panel: overlay on mobile instead of side-by-side */
-  .side-panel {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 100%;
-    min-width: unset;
-    z-index: 200;
-    box-shadow: var(--bw-shadow-lg);
-  }
-  .browser-content-row { position: relative; }
 }
