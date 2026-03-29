@@ -52,15 +52,20 @@ export interface GenerationResult {
   tokenCount: TokenCount;
 }
 
-export type AnalysisAction = 'summarize' | 'key-points' | 'simplify' | 'ask';
+export type AnalysisAction = 'summarize' | 'key-points' | 'simplify' | 'ask' | 'related' | 'explain';
 
 const ANALYSIS_PROMPTS: Record<AnalysisAction, string> = {
-  'summarize': 'Provide a clear, concise summary of this web page in 2-3 short paragraphs. Focus on the main content and purpose.',
-  'key-points': 'Extract the key points from this web page as a concise bullet list. Use "•" for bullets. Keep each point to one sentence.',
-  'simplify': 'Rewrite the main content of this web page in simpler, more accessible language. Keep the meaning but reduce complexity.',
+  'summarize': 'Provide a clear, concise summary of this content in 2-3 short paragraphs. Focus on the main content and purpose.',
+  'key-points': 'Extract the key points as a concise bullet list. Use "•" for bullets. Keep each point to one sentence.',
+  'simplify': 'Rewrite the main content in simpler, more accessible language. Keep the meaning but reduce complexity.',
+  'related': 'Suggest 5 related topics or searches the user might find useful, formatted as a numbered list with brief descriptions.',
+  'explain': 'Explain this topic in plain language as if to someone unfamiliar with it. Be clear and concise.',
   'ask': '',
 };
 
+/**
+ * Stream analysis for AI-generated page content (has full HTML access)
+ */
 export async function* streamTextAnalysis(
   pageHtml: string,
   action: AnalysisAction,
@@ -93,6 +98,44 @@ export async function* streamTextAnalysis(
     yield `Analysis failed: ${error?.message || 'Unknown error'}`;
   }
 }
+
+/**
+ * Stream analysis for web tabs (no page content, uses URL context only)
+ */
+export async function* streamWebTabAnalysis(
+  url: string,
+  tabTitle: string,
+  action: AnalysisAction,
+  question?: string,
+  abortSignal?: AbortSignal,
+): AsyncGenerator<string> {
+  const actionPrompt = action === 'ask'
+    ? (question || 'What is this website about?')
+    : ANALYSIS_PROMPTS[action];
+
+  const systemPrompt = `You help users understand web content. The user is browsing a website and you're providing analysis based on the URL and topic. You cannot access the live page content directly — use your general knowledge about the URL, domain, and topic. Be honest about this limitation. Use plain text with minimal markdown (bold, bullets, paragraphs). Be concise and direct.`;
+  const userPrompt = `The user is browsing: ${url}${tabTitle ? ` (page title: "${tabTitle}")` : ''}\n\n${actionPrompt}`;
+
+  try {
+    const response = await ai.models.generateContentStream({
+      model: MODEL_NAME,
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        ...(abortSignal ? { abortSignal } : {}),
+      },
+    });
+
+    for await (const chunk of response) {
+      if (abortSignal?.aborted) break;
+      if (chunk.text) yield chunk.text;
+    }
+  } catch (error: any) {
+    if (error?.name === 'AbortError') return;
+    yield `Analysis failed: ${error?.message || 'Unknown error'}`;
+  }
+}
+
 export async function* streamPageGeneration(
   prompt: string,
   currentPageHtml: string | null = null,
@@ -154,8 +197,8 @@ Create a complete, detailed, realistic-looking web page based on this descriptio
         ],
       });
       inputTokens = countResult.totalTokens || 0;
-    } catch (e) {
-      console.warn('countTokens failed, will use usageMetadata:', e);
+    } catch {
+      // countTokens may fail, fall back to usageMetadata
     }
 
     yield `__TOKEN__${JSON.stringify({ input: inputTokens, output: 0, isEstimate: true })}`;
@@ -198,7 +241,6 @@ Create a complete, detailed, realistic-looking web page based on this descriptio
     yield `__META__${JSON.stringify({ tokenCount: { input: inputTokens, output: outputTokens }, groundingSources, searchEntryPointHtml })}`;
 
   } catch (error) {
-    console.error("Gemini Stream Error:", error);
     yield `<div class="p-8 text-red-600"><h1>Generation Error</h1><p>${error}</p></div>`;
   }
 }
