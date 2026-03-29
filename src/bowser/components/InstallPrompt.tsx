@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -7,9 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export const InstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(() => {
-    try { return localStorage.getItem('bowser-install-dismissed') === '1'; } catch { return false; }
-  });
+  const [dismissed, setDismissed] = useState(() => getStorageItem<boolean>('install-dismissed', false));
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export const InstallPrompt: React.FC = () => {
 
   const handleDismiss = () => {
     setDismissed(true);
-    try { localStorage.setItem('bowser-install-dismissed', '1'); } catch {}
+    setStorageItem('install-dismissed', true);
   };
 
   return (

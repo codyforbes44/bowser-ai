@@ -683,11 +683,6 @@
    BOWSER BUILT-IN PAGE TOKENS
    ========================================== */
 
-.bowser-page-bg { background: var(--bw-bg-app); }
-.bowser-list-item { background: transparent; border-radius: var(--bw-radius-md); }
-.bowser-list-item:hover { background: var(--bw-bg-hover); }
-.bowser-settings-bg { background: var(--bw-bg-app); }
-.bowser-settings-card { background: var(--bw-bg-surface); }
 
 /* ==========================================
    COMMAND PALETTE

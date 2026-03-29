@@ -219,7 +219,7 @@ const BowserApp: React.FC = () => {
     }
 
     if (decision.kind === 'web') {
-      updateTab(activeTabIndex, t => ({
+      updateTabById(tab.id, t => ({
         ...t, tabKind: 'web', browserUrl: decision.url,
         breadcrumb: { sitename: decision.url, page: '' }, navigationId: t.navigationId + 1
       }));
@@ -228,7 +228,7 @@ const BowserApp: React.FC = () => {
     }
 
     if (decision.kind === 'ai') {
-      updateTab(activeTabIndex, t => ({ ...t, tabKind: 'ai' }));
+      updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
       if (type === 'create') {
         const fallback: Breadcrumb = { sitename: decision.query || prompt, page: 'Home' };
         generate(decision.query || prompt, null, fallback, true);
@@ -241,12 +241,12 @@ const BowserApp: React.FC = () => {
       return;
     }
 
-    updateTab(activeTabIndex, t => ({
+    updateTabById(tab.id, t => ({
       ...t, tabKind: decision.kind, browserUrl: undefined,
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: decision.kind, page: '' },
     }));
-  }, [generate, currentPage, activeTab.breadcrumb, tabs, activeTabIndex, updateTab, addHistoryEntry]);
+  }, [generate, currentPage, activeTab.breadcrumb, tabs, activeTabIndex, updateTabById, addHistoryEntry]);
 
   const handleBack = useCallback(() => {
     if (activeTab.tabKind === 'web') return;
@@ -315,11 +315,9 @@ const BowserApp: React.FC = () => {
     });
   }, []);
 
-  // Actually creates an AI-mode tab, not a duplicate of handleNewTab
+  // New AI tab: opens as new-tab, converts to 'ai' on first prompt (onCreatePage already does this)
   const handleNewAiTab = useCallback(() => {
     const newTab = createTab('new-tab');
-    // Mark as AI kind so the tab opens in AI mode
-    newTab.tabKind = 'ai';
     setTabs(prev => {
       const next = [...prev, newTab];
       queueMicrotask(() => setActiveTabIndex(next.length - 1));
@@ -542,6 +540,7 @@ const BowserApp: React.FC = () => {
           />
         ) : (
           <Sandbox
+            key={activeTab.navigationId}
             htmlContent={displayContent}
             onNavigate={handleLinkClick}
             onAction={handleAction}
