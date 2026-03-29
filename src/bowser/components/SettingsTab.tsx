@@ -15,6 +15,18 @@ export function applyBowserTheme(theme: BowserTheme) {
   root.setAttribute('data-bowser-theme', effective);
 }
 
+const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
+const mod = isMac ? '⌘' : 'Ctrl';
+
+const SHORTCUTS = [
+  { keys: `${mod}+K`, description: 'Open Command Palette' },
+  { keys: `${mod}+L`, description: 'Focus Address Bar' },
+  { keys: `${mod}+T`, description: 'New Tab' },
+  { keys: `${mod}+Shift+T`, description: 'New AI Tab' },
+  { keys: `${mod}+W`, description: 'Close Current Tab' },
+  { keys: `${mod}+1–9`, description: 'Switch to Tab N' },
+];
+
 interface SettingsTabProps {
   onClearHistory?: () => void;
 }
@@ -31,7 +43,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
   return (
     <div className="w-full h-full bowser-settings-bg text-gray-200 p-8 overflow-y-auto">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-medium mb-8">Settings</h1>
+        <h1 className="text-2xl font-medium mb-8 flex items-center gap-3">
+          <span className="material-symbols-outlined text-gray-400">settings</span>
+          Settings
+        </h1>
         <div className="space-y-8">
 
           {/* Appearance */}
@@ -62,6 +77,22 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory }) => {
                   ))}
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Keyboard Shortcuts */}
+          <section className="bowser-settings-card p-6 rounded-xl border border-[#3c4043]">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-orange-400">keyboard</span>
+              Keyboard Shortcuts
+            </h2>
+            <div className="space-y-2">
+              {SHORTCUTS.map(s => (
+                <div key={s.keys} className="flex items-center justify-between py-2 border-b border-[#3c4043] last:border-0">
+                  <span className="text-sm text-gray-300">{s.description}</span>
+                  <kbd className="px-2.5 py-1 bg-[#202124] border border-[#3c4043] rounded-md text-xs text-gray-400 font-mono">{s.keys}</kbd>
+                </div>
+              ))}
             </div>
           </section>
 
