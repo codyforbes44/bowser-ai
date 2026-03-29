@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getStorageItem, setStorageItem } from '../utils/storage';
 
 const ONBOARDING_KEY = 'onboarding-complete';
@@ -18,24 +18,56 @@ interface OnboardingModalProps {
 
 const STEPS = [
   {
+    icon: 'explore',
+    title: 'Welcome to Bowser',
+    body: 'A browser that browses with you.',
+  },
+  {
+    icon: 'search',
+    title: 'Search anything',
+    body: 'Type a URL, search query, or question in the address bar. Switch between Web and AI mode.',
+  },
+  {
     icon: 'auto_awesome',
-    title: 'Describe any website',
-    body: 'Type a description in the address bar and Bowser generates a complete, interactive page in real time. No templates — every page is built from your words.',
-  },
-  {
-    icon: 'public',
-    title: 'Browse the AI web',
-    body: 'Click links on generated pages to keep exploring. Each click creates a new page based on what came before, so you can navigate naturally.',
-  },
-  {
-    icon: 'bookmark',
-    title: 'Save and organize',
-    body: 'Bookmark pages you like, pin your most-used tabs, and pick up where you left off. Your workspace is saved automatically.',
+    title: 'Your AI assistant',
+    body: 'Open the side panel to ask questions about what you\'re browsing, summarize topics, or just think out loud.',
   },
 ];
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
   const [step, setStep] = useState(0);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) setStep(0);
+  }, [isOpen]);
+
+  // Focus trap
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSkip();
+        return;
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -61,53 +93,57 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
       onClick={handleSkip}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Welcome to Bowser"
     >
       <div
-        className="w-full max-w-sm mx-4 rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        ref={modalRef}
+        className="w-full max-w-[480px] mx-4 overflow-hidden"
         style={{
           background: 'var(--bw-bg-elevated)',
           border: '1px solid var(--bw-border)',
-          boxShadow: 'var(--bw-shadow-xl, 0 20px 60px rgba(0,0,0,0.4))',
+          borderRadius: 'var(--bw-radius-lg)',
+          boxShadow: 'var(--bw-shadow-xl)',
+          animation: 'cp-in 0.1s ease-out',
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Content */}
         <div className="px-6 pt-8 pb-6 text-center">
           <span
-            className="material-symbols-outlined text-3xl mb-4 inline-block"
-            style={{ color: 'var(--bw-accent)' }}
+            className="material-symbols-outlined mb-4 inline-block"
+            style={{ color: 'var(--bw-accent)', fontSize: '28px' }}
             aria-hidden="true"
           >
             {current.icon}
           </span>
           <h2
-            className="text-base font-semibold mb-2"
+            className="text-[15px] font-semibold mb-2"
             style={{ color: 'var(--bw-text-primary)', letterSpacing: '-0.02em' }}
           >
             {current.title}
           </h2>
           <p
-            className="text-[13px] leading-relaxed"
+            className="text-[12px] leading-relaxed"
             style={{ color: 'var(--bw-text-tertiary)' }}
           >
             {current.body}
           </p>
         </div>
 
-        {/* Footer */}
         <div
-          className="px-6 py-4 flex items-center justify-between"
+          className="px-6 py-3 flex items-center justify-between"
           style={{ borderTop: '1px solid var(--bw-border-subtle)' }}
         >
-          {/* Step dots */}
           <div className="flex gap-1.5">
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className="w-1.5 h-1.5 rounded-full transition-colors"
+                className="w-1.5 h-1.5 rounded-full"
                 style={{
                   background: i === step ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)',
                   opacity: i === step ? 1 : 0.3,
+                  transition: 'background 0.15s ease, opacity 0.15s ease',
                 }}
               />
             ))}
@@ -116,19 +152,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
           <div className="flex items-center gap-3">
             <button
               onClick={handleSkip}
-              className="text-[12px] font-medium transition-colors"
-              style={{ color: 'var(--bw-text-quaternary)' }}
+              className="text-[12px] font-medium"
+              style={{ color: 'var(--bw-text-quaternary)', transition: 'color 0.1s ease' }}
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-secondary)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
             >
-              Skip
+              Skip for now
             </button>
             <button
               onClick={handleNext}
-              className="px-4 py-1.5 text-[12px] font-semibold rounded-md transition-colors"
-              style={{ background: 'var(--bw-accent)', color: '#ffffff' }}
+              className="px-4 py-1.5 text-[12px] font-semibold"
+              style={{
+                background: 'var(--bw-accent)',
+                color: '#fff',
+                borderRadius: 'var(--bw-radius-sm)',
+                transition: 'opacity 0.1s ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
             >
-              {isLast ? 'Get started' : 'Next'}
+              {isLast ? 'Start browsing' : 'Next'}
             </button>
           </div>
         </div>
