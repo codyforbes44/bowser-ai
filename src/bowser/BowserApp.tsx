@@ -9,6 +9,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { AiSidePanel } from './components/AiSidePanel';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
+import { getStorageItem, setStorageItem } from './utils/storage';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
 import { useHistory } from './store/history';
@@ -19,7 +20,7 @@ import { getTabLimit, applyFontScale, getFontSize } from './hooks/useBowserSetti
 import { useSwipeGesture } from './hooks/useSwipeGesture';
 
 const BowserApp: React.FC = () => {
-  const [isGrounded, setIsGrounded] = useState(true);
+  const [isGrounded, setIsGrounded] = useState(() => getStorageItem<boolean>('live-data', true));
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
