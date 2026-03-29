@@ -309,8 +309,6 @@ const BowserApp: React.FC = () => {
         onHome={handleHome}
         canGoBack={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex > 0 : activeTab.currentIndex > 0}
         canGoForward={activeTab.tabKind === 'web' ? activeTab.webHistoryIndex < activeTab.webHistory.length - 1 : activeTab.currentIndex < activeTab.history.length - 1}
-        groundingSources={activeTab.groundingSources}
-        searchEntryPointHtml={activeTab.searchEntryPointHtml}
         tabs={tabs}
         activeTabIndex={safeIndex}
         onNewTab={() => handleNewTab(getTabLimit() || undefined)}
