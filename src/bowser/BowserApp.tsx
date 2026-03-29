@@ -296,6 +296,10 @@ const BowserApp: React.FC = () => {
               updateTabById(activeTab.id, t => ({ ...t, tabKind: 'ai' }));
               handleCreate(prompt);
             }}
+            onWebNavigate={(query) => {
+              updateTabById(activeTab.id, t => ({ ...t, tabKind: 'web' }));
+              handleOmnibarNavigate('create', query);
+            }}
             isGrounded={isGrounded}
             onToggleGrounding={() => setIsGrounded(prev => !prev)}
             bookmarks={bookmarks}
@@ -303,8 +307,6 @@ const BowserApp: React.FC = () => {
             onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
             history={history}
             onShowOnboarding={() => setShowOnboarding(true)}
-            isBrowserMode={activeTab.tabKind === 'web'}
-            onToggleBrowserMode={handleToggleBrowserMode}
             onOpenSettings={() => navigateToSystemPage('settings')}
           />
         ) : activeTab.tabKind === 'history' ? (
