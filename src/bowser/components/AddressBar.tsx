@@ -123,6 +123,24 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   }, [isLoading]);
 
   useEffect(() => {
+    if (!historyDropdownOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (historyDropdownRef.current && !historyDropdownRef.current.contains(e.target as Node)) {
+        setHistoryDropdownOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHistoryDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [historyDropdownOpen]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
