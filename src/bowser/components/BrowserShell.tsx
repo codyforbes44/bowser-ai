@@ -400,7 +400,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         </button>
       )}
       <button className="tab-new-mobile" onClick={onNewTab} title="New Tab" aria-label="Open new tab">
-        <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: '20px' }}>add</span>
+        <span className="material-symbols-outlined" style={{ fontSize: '20px' }} aria-hidden="true">add</span>
       </button>
     </div>
   );
