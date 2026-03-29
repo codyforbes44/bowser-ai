@@ -1,65 +1,62 @@
 
 
-## Review: Back/Forward Arrow History Support
+# Auto-Fullscreen + Production Hardening Plan
 
-### Current State
+## 1. Auto-Fullscreen on Session Start
 
-**AI/Create mode — back/forward works within a session:**
-- Each AI-generated page is pushed to `tab.history[]` with a `currentIndex` pointer
-- `handleBack` decrements `currentIndex`, `handleForward` increments it
-- New navigation forks history (standard browser behavior)
-- Buttons correctly enable/disable based on index position
+The Fullscreen API requires a user gesture — browsers block `requestFullscreen()` without one. The approach:
 
-**Web mode — back/forward is fully disabled:**
-- `canGoBack` and `canGoForward` are hardcoded to `false` for `tabKind === 'web'`
-- `handleBack` and `handleForward` early-return for web tabs
-- The iframe manages its own internal history, but the app's arrows ignore it entirely
-- Users browsing real websites have no way to use the back/forward buttons
+- **On first user interaction** (click/keydown anywhere in the shell), request fullscreen automatically
+- **Persist preference** in localStorage (`auto-fullscreen: true`), so returning users get the same behavior
+- **Add a Settings toggle** ("Open in fullscreen") so users can disable it
+- **Skip in iframes/preview** (Lovable editor context) to avoid errors
 
-**Session restore — history is lost on reload:**
-- `saveWorkspace` only persists tab metadata (kind, URL, breadcrumb, lastPrompt)
-- The `history[]` array and `currentIndex` are NOT saved
-- After page reload, back/forward won't work until new pages are generated in that session
+### Implementation
+- **BowserApp.tsx**: Add a one-time `useEffect` that listens for the first `click` or `keydown` event on the document. On that event, call `shellRef.current.requestFullscreen()` if the `auto-fullscreen` setting is enabled and not already fullscreen. Remove the listener after firing once.
+- **BrowserShell.tsx**: Forward a ref or expose the shell element so BowserApp can target it. Alternatively, target `document.documentElement`.
+- **SettingsTab.tsx**: Add an "Open in fullscreen" toggle under Appearance, persisted via `useBowserSettings`.
+- **useBowserSettings.ts**: Add `getAutoFullscreen()` / `setAutoFullscreen()` helpers.
 
-### Findings Summary
+## 2. Production Review & Refactoring
 
-| Scenario | Back/Forward | Status |
-|----------|-------------|--------|
-| AI pages within session | Works | OK |
-| AI pages after reload | Lost — no persistence | Issue |
-| Web iframe tabs | Fully disabled | Issue |
-| System pages (history, settings) | N/A (no navigation stack) | OK |
+After thorough codebase review, here are the issues to address:
 
-### Recommended Fix (2 changes)
+### A. Security Hardening
+- **Sandbox CSP**: The Sandbox iframe CSP correctly blocks `connect-src` and `frame-src`. No changes needed.
+- **Service worker guard in main.tsx**: Already strips SW in iframe/preview. Good.
 
-#### 1. Enable back/forward for web iframe tabs
-- Track a list of visited URLs per web tab in `tab.history` (or a parallel `webHistory` array)
-- When user navigates to a new URL in web mode, push the URL to the history stack
-- `handleBack` for web tabs: pop to previous URL, update `browserUrl` and `navigationId`
-- `handleForward`: move forward in the URL stack
-- Update `canGoBack`/`canGoForward` to check web history length
+### B. Code Quality Fixes
+- **Duplicate "Live data" toggle in desktop menu**: The desktop dropdown menu (AddressBar lines 566-581) duplicates the globe icon already visible in the address bar. Remove the redundant dropdown entry — the globe button is sufficient.
+- **Missing CSS comment marker**: Line 693 in `index.css` is missing the opening `/* =` for the COMMAND PALETTE section header. Fix the comment syntax.
+- **Consistent `useCallback` usage**: Several inline arrow functions passed as props in BowserApp.tsx (e.g., `onToggleGrounding`, `onNewTab`) recreate on every render. Wrap them in `useCallback` for memoization consistency.
 
-**Files**: `BowserApp.tsx` (remove web early-returns, update canGo props), `useOmnibox.ts` (push URL to history on web navigation), `useTabManager.ts` (no changes needed)
+### C. Performance
+- **Memoize heavy child components**: The `NewTab`, `HistoryTab`, `BookmarksTab` components receive new object/function props each render. Wrap key callbacks with `useCallback` (already partially done).
+- **Lazy-load system tabs**: `HistoryTab`, `BookmarksTab`, `SettingsTab` can be `React.lazy()` loaded since they're not on the critical path.
 
-#### 2. Persist AI page history across reloads
-- Extend `SerializedTab` in `session.ts` to include a compact version of history (prompt + breadcrumb per page, not full HTML)
-- On restore, re-populate `tab.history` with stub entries that can be regenerated on demand
-- Or: persist the last N pages' HTML (capped at ~500KB total per tab to avoid localStorage quota)
+### D. Accessibility Polish
+- **Tab bar `role="tablist"`** is already correctly applied. Good.
+- **Fullscreen button**: Update aria-label to reflect the new auto-fullscreen behavior.
 
-**Files**: `store/session.ts` (extend serialization), `useTabManager.ts` (restore logic)
+### E. PWA / Deployment Readiness
+- **`robots.txt` and `sitemap.xml`** already present. Good.
+- **OG tags / meta**: Already configured. Good.
+- **Canonical URL**: Already set. Good.
 
-### Technical Details
+## File Changes Summary
 
-**Web history tracking approach:**
-```text
-Tab.webHistory: string[]    // stack of URLs visited
-Tab.webHistoryIndex: number // current position
-```
+| File | Changes |
+|---|---|
+| `src/bowser/hooks/useBowserSettings.ts` | Add `getAutoFullscreen` / `setAutoFullscreen` |
+| `src/bowser/BowserApp.tsx` | Add auto-fullscreen on first interaction; wrap inline callbacks in `useCallback`; lazy-load system tab components |
+| `src/bowser/components/SettingsTab.tsx` | Add "Open in fullscreen" toggle |
+| `src/bowser/components/AddressBar.tsx` | Remove duplicate "Live data" toggle from desktop dropdown menu |
+| `src/index.css` | Fix broken comment on line 693 |
 
-On web navigate: push URL, set index to end.
-On back: decrement index, set browserUrl to webHistory[index].
-On forward: increment index, set browserUrl.
+## Technical Notes
 
-**AI history persistence approach:**
-Store only prompts + breadcrumbs (not HTML) — pages can be lazy-regenerated when the user navigates back after a reload. This keeps storage small.
+- Fullscreen API is gated behind user gesture — the `click`/`keydown` listener pattern is the standard workaround
+- `document.documentElement.requestFullscreen()` is the safest target (works even without a ref to the shell div)
+- The iframe/preview guard in `main.tsx` will be extended to also skip auto-fullscreen attempts
+- All settings default to enabled (`auto-fullscreen: true`) for new users; existing users get the same default
 
