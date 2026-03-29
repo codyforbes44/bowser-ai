@@ -447,6 +447,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           canBookmark={canBookmark}
           webHistoryPosition={webHistoryPosition}
           webHistoryTotal={webHistoryTotal}
+          webHistoryUrls={webHistoryUrls}
+          onWebHistoryNavigate={onWebHistoryNavigate}
         />
       )}
 
@@ -518,6 +520,8 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             isMobile={true}
             webHistoryPosition={webHistoryPosition}
             webHistoryTotal={webHistoryTotal}
+            webHistoryUrls={webHistoryUrls}
+            onWebHistoryNavigate={onWebHistoryNavigate}
             onToggleSidePanel={onToggleSidePanel}
           />
           {mobileTabBar}
