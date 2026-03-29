@@ -488,19 +488,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                     <div className="toggle-thumb" />
                   </div>
                 </label>
-                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[13px]">Live data</span>
-                  <div
-                    className={`toggle-track ${isGrounded ? 'active' : ''}`}
-                    onClick={onToggleGrounding}
-                    role="switch"
-                    aria-checked={isGrounded}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleGrounding(); } }}
-                  >
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
               </div>
             )}
           </div>
@@ -521,16 +508,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             </span>
           </button>
 
-          <button
-            onClick={onToggleGrounding}
-            className="nav-btn"
-            style={{ color: isGrounded ? 'var(--bw-accent)' : undefined }}
-            title={isGrounded ? 'Live data on' : 'Live data off'}
-            aria-label={isGrounded ? 'Disable live data' : 'Enable live data'}
-            aria-pressed={isGrounded}
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">language</span>
-          </button>
 
           {/* Mode toggle */}
           <button
