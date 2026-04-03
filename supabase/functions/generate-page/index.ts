@@ -2,9 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+function jsonError(message: string, code: string, status: number, field?: string) {
+  return new Response(
+    JSON.stringify({ error: message, code, ...(field ? { field } : {}) }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
 
 const SYSTEM_PROMPT = `
 You are powered by Gemini 3 Flash, a state-of-the-art model with real-time web browsing capabilities. You generate complete web pages as HTML documents.
@@ -49,26 +56,50 @@ CONTENT:
 Fill every page with rich, plausible, detailed content. Make it feel like a real website.
 `;
 
+const TIMEOUT_MS = 25_000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
-    const { prompt, currentPageHtml, formState, isMobile } = await req.json();
+    // Check client disconnect
+    if (req.signal?.aborted) {
+      return jsonError("Client disconnected", "INTERNAL_ERROR", 499);
+    }
+
+    // Parse & validate input
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonError("Invalid JSON body", "INVALID_INPUT", 400);
+    }
+
+    const { prompt, currentPageHtml, formState, isMobile } = body;
+
+    if (!prompt || typeof prompt !== "string") {
+      return jsonError("prompt is required and must be a string", "INVALID_INPUT", 400, "prompt");
+    }
+    if (prompt.length < 1 || prompt.length > 2000) {
+      return jsonError("prompt must be between 1 and 2000 characters", "INVALID_INPUT", 400, "prompt");
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      return jsonError("Server configuration error", "INTERNAL_ERROR", 500);
+    }
 
     const isEdit = currentPageHtml !== null && currentPageHtml !== undefined;
 
     let userPrompt: string;
     if (isEdit) {
       const formStateBlock =
-        formState && formState.length > 0
-          ? `\n\nThe user entered the following values into input fields on the previous page:\n${formState.map((f: any) => `- ${f.name || "unnamed"} (${f.type}): "${f.value}"`).join("\n")}\n`
+        formState && Array.isArray(formState) && formState.length > 0
+          ? `\n\nThe user entered the following values into input fields on the previous page:\n${formState.map((f: any) => `- ${String(f.name || "unnamed")} (${String(f.type)}): "${String(f.value)}"`).join("\n")}\n`
           : "";
-      userPrompt = `Update this page based on the following.\nInstruction: "${prompt}"\n\nKeep the layout and style generally consistent.\nReturn the complete updated HTML document.${formStateBlock}\n\nCURRENT HTML:\n${currentPageHtml}`;
+      userPrompt = `Update this page based on the following.\nInstruction: "${prompt}"\n\nKeep the layout and style generally consistent.\nReturn the complete updated HTML document.${formStateBlock}\n\nCURRENT HTML:\n${String(currentPageHtml).slice(0, 100000)}`;
     } else {
       userPrompt = `Task: Generate a new web page.\nDescription: "${prompt}"\n\nCreate a complete, detailed, realistic-looking web page based on this description.`;
     }
@@ -77,55 +108,66 @@ serve(async (req) => {
       userPrompt += `\nIMPORTANT: The user is on a MOBILE device with a narrow viewport. Design mobile-first:\n- Use a single-column layout\n- Use responsive Tailwind classes\n- Avoid horizontal scrolling\n- Stack elements vertically\n- Keep navigation simple\n`;
     }
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
-          ],
-          stream: true,
-        }),
-      }
-    );
+    // Create combined abort signal: client disconnect OR timeout
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Usage limit reached. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const text = await response.text();
-      console.error("AI gateway error:", status, text);
-      return new Response(
-        JSON.stringify({ error: "AI gateway error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    const combinedSignal = req.signal
+      ? AbortSignal.any([req.signal, timeoutController.signal])
+      : timeoutController.signal;
+
+    try {
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: userPrompt },
+            ],
+            stream: true,
+          }),
+          signal: combinedSignal,
+        }
       );
-    }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const status = response.status;
+        const text = await response.text().catch(() => "");
+        if (status === 429) {
+          return jsonError("Rate limit exceeded. Please try again in a moment.", "UPSTREAM_FAILED", 429);
+        }
+        if (status === 402) {
+          return jsonError("Usage limit reached. Please add credits to your workspace.", "UPSTREAM_FAILED", 402);
+        }
+        console.error("AI gateway error:", status, text);
+        return jsonError("AI service temporarily unavailable", "UPSTREAM_FAILED", 502);
+      }
+
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      if (e?.name === "AbortError") {
+        if (req.signal?.aborted) {
+          // Client disconnected — no response needed but return anyway
+          return jsonError("Client disconnected", "INTERNAL_ERROR", 499);
+        }
+        return jsonError("Request timed out", "TIMEOUT", 504);
+      }
+      throw e;
+    }
   } catch (e) {
     console.error("generate-page error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonError("An unexpected error occurred", "INTERNAL_ERROR", 500);
   }
 });
