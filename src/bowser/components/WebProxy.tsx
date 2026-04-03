@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StateDisplay } from './StateDisplay';
 
 interface WebProxyProps {
   url: string;
@@ -70,9 +71,8 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
-        <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" />
-        <p className="text-sm opacity-60">Loading page…</p>
+      <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--bw-bg-app)' }}>
+        <StateDisplay type="loading" message="Loading page…" />
       </div>
     );
   }
@@ -80,14 +80,12 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
   if (error) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
-        <span className="material-symbols-outlined text-4xl opacity-40">cloud_off</span>
-        <p className="text-sm opacity-60 text-center max-w-md">
-          This page couldn't be loaded through the proxy: {error}
-        </p>
+        <StateDisplay type="error" message={`This page couldn't be loaded through the proxy: ${error}`} onRetry={handleOpenExternal} />
         <button
           onClick={handleOpenExternal}
           className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{ background: 'var(--bw-accent)', color: '#fff' }}
+          aria-label="Open in new tab"
         >
           Open in new tab ↗
         </button>
@@ -102,7 +100,7 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
       ref={iframeRef}
       srcDoc={html}
       className="w-full h-full border-none bg-white"
-      sandbox="allow-scripts allow-forms allow-same-origin"
+      sandbox="allow-scripts allow-same-origin allow-forms"
       title="Web content (proxied)"
     />
   );

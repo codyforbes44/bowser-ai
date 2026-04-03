@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Bookmark, HistoryEntry, TabKind } from '../types';
 import { InstallPrompt } from './InstallPrompt';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import { getRecentPrompts } from '../store/session';
+import { StateDisplay } from './StateDisplay';
 
 interface NewTabProps {
   onCreatePage: (prompt: string) => void;
@@ -29,15 +30,24 @@ export const NewTab: React.FC<NewTabProps> = ({
   const [localBrowserMode, setLocalBrowserMode] = useState(true);
   const { canInstall, triggerInstall } = useInstallPrompt();
 
-  const recentPrompts = useMemo(() => getRecentPrompts().slice(0, 5), []);
+  // Deferred data — first paint is static (just search bar + branding)
+  const [recentPrompts, setRecentPrompts] = useState<string[]>([]);
+  const [recentActivity, setRecentActivity] = useState<HistoryEntry[]>([]);
+  const [deferredReady, setDeferredReady] = useState(false);
 
-  const recentActivity = useMemo(() => {
-    const seen = new Set<string>();
-    return history.filter(e => {
-      if (seen.has(e.title)) return false;
-      seen.add(e.title);
-      return true;
-    }).slice(0, 4);
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setRecentPrompts(getRecentPrompts().slice(0, 5));
+      const seen = new Set<string>();
+      const filtered = history.filter(e => {
+        if (seen.has(e.title)) return false;
+        seen.add(e.title);
+        return true;
+      }).slice(0, 4);
+      setRecentActivity(filtered);
+      setDeferredReady(true);
+    }, 0);
+    return () => clearTimeout(id);
   }, [history]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +61,7 @@ export const NewTab: React.FC<NewTabProps> = ({
   };
 
   const topBookmarks = bookmarks.slice(0, 8);
-  const isFirstRun = !recentPrompts.length && !recentActivity.length && !topBookmarks.length;
+  const isFirstRun = deferredReady && !recentPrompts.length && !recentActivity.length && !topBookmarks.length;
 
   const formatTime = (ts: number) => {
     const diff = Date.now() - ts;
@@ -65,7 +75,7 @@ export const NewTab: React.FC<NewTabProps> = ({
     <div className="newtab-page overflow-y-auto">
       <div className="newtab-content min-h-full py-8 md:py-16 pb-20 md:pb-16">
 
-        {isFirstRun ? (
+        {!deferredReady || isFirstRun ? (
           <FirstRunLanding
             prompt={prompt}
             setPrompt={setPrompt}
@@ -301,7 +311,7 @@ const ReturningUserView: React.FC<{
     )}
 
     {/* Recent prompts */}
-    {recentPrompts.length > 0 && (
+    {recentPrompts.length > 0 ? (
       <div className="mt-8 w-full max-w-md">
         <h2 className="text-[11px] font-medium uppercase tracking-widest mb-2" style={{ color: 'var(--bw-text-quaternary)' }}>
           Recent
@@ -319,6 +329,10 @@ const ReturningUserView: React.FC<{
             </button>
           ))}
         </div>
+      </div>
+    ) : topBookmarks.length === 0 && (
+      <div className="mt-8 w-full max-w-md">
+        <StateDisplay type="empty" icon="history" title="No recent activity" subtitle="Your recent prompts and browsing history will appear here." />
       </div>
     )}
 
@@ -359,42 +373,53 @@ interface OmniboxProps {
   onToggleBrowserMode?: () => void;
 }
 
-const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, onToggleBrowserMode }, ref) => (
-  <div ref={ref}>
-    <form onSubmit={onSubmit} className="newtab-form">
-      <div className="newtab-input-row">
-        <input
-          type="text"
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
-          className="newtab-input"
-          placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
-          aria-label="Search or create anything"
-          autoFocus
-        />
-        <button type="submit" className="newtab-submit" aria-label="Go">
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }} aria-hidden="true">arrow_forward</span>
-        </button>
+const Omnibox = React.forwardRef<HTMLDivElement, OmniboxProps>(({ prompt, setPrompt, onSubmit, isBrowserMode, onToggleBrowserMode }, ref) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus on mount and when tab switches to new-tab
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div ref={ref}>
+      <form onSubmit={onSubmit} className="newtab-form">
+        <div className="newtab-input-row">
+          <input
+            ref={inputRef}
+            type="text"
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            className="newtab-input"
+            placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
+            aria-label="Search or create anything"
+            autoFocus
+          />
+          <button type="submit" className="newtab-submit" aria-label="Go">
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }} aria-hidden="true">arrow_forward</span>
+          </button>
+        </div>
+      </form>
+
+      <div className="flex items-center justify-center gap-2 mt-3">
+        {onToggleBrowserMode && (
+          <button
+            onClick={onToggleBrowserMode}
+            className="bw-chip bw-hover-bg"
+            title={isBrowserMode ? 'Switch to Create mode' : 'Switch to Web mode'}
+            aria-label={isBrowserMode ? 'Switch to Create mode' : 'Switch to Web mode'}
+          >
+            <span className="material-symbols-outlined icon-sm" aria-hidden="true">
+              {isBrowserMode ? 'public' : 'auto_awesome'}
+            </span>
+            {isBrowserMode ? 'Web' : 'Create'}
+          </button>
+        )}
       </div>
-    </form>
-
-    <div className="flex items-center justify-center gap-2 mt-3">
-      {onToggleBrowserMode && (
-        <button
-          onClick={onToggleBrowserMode}
-          className="bw-chip bw-hover-bg"
-          title={isBrowserMode ? 'Switch to Create mode' : 'Switch to Web mode'}
-        >
-          <span className="material-symbols-outlined icon-sm" aria-hidden="true">
-            {isBrowserMode ? 'public' : 'auto_awesome'}
-          </span>
-          {isBrowserMode ? 'Web' : 'Create'}
-        </button>
-      )}
-
     </div>
-  </div>
-));
+  );
+});
 
 Omnibox.displayName = 'Omnibox';
 
@@ -424,6 +449,7 @@ const QuickChip: React.FC<{ icon: string; label: string; onClick: () => void }> 
     onClick={onClick}
     className="bw-chip bw-hover-bg min-h-[44px]"
     style={{ touchAction: 'manipulation' }}
+    aria-label={label}
   >
     <span className="material-symbols-outlined icon-sm" aria-hidden="true">{icon}</span>
     {label}
