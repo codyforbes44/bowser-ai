@@ -98,3 +98,28 @@ export function createTab(tabKind: TabKind = 'new-tab'): Tab {
     webHistoryIndex: -1,
   };
 }
+
+/* ─── AI Job State ─── */
+export type AIJobStatus = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
+
+export interface AIJobState {
+  status: AIJobStatus;
+  content: string;
+  error: string | null;
+}
+
+/* ─── Navigation State ─── */
+export interface NavigationState {
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+/* ─── Settings ─── */
+export type BowserThemeOption = 'dark' | 'light' | 'system';
+
+export interface BowserSettings {
+  theme: BowserThemeOption;
+  searchEngine: string;
+  fontSize: string;
+  tabLimit: number;
+}
