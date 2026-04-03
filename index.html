@@ -3,38 +3,84 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Bowser</title>
-    <meta name="description" content="An AI-native browser built for focused, intelligent browsing.">
+    <title>Bowser — AI Browser</title>
+    <meta name="description" content="Bowser is an AI-powered browser that generates web pages, browses the web, and assists with any task.">
     <meta name="author" content="Lovable" />
-    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="theme-color" content="#09090b" />
 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bowser" />
 
+    <!-- CSP -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' blob:;" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    
-    
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/2f07597b-b2d6-4c36-8a80-7e7515e8ceb7?Expires=1774767083&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=q9tj%2BkxyovBjJ8fwYgSGvbUmWeOTon%2BJ8n2eVl0VzySw6ihaJqJ%2F2O8FQ%2FXNZe%2B169%2BP9Cb6%2BL5dBrHUr%2F6PRgI1%2FRgUZWA1QuhND9vHcV8d6JnbcrrLPWqskCZUfh4%2BQ9bs%2BTSTBt7RLty8amcLe3Y4JMZ7detI%2FaSyBDwQwr2LhZ4tz67IwkuvfuI1yOnHPmNsIhYhSCLuq2UYy3Tcl%2BYBUy0n%2BVffSp86Gk%2BmPEoVwmDdLQ9RUyOBKxRaiyiVM3V1ygpLFwBb0X9lE2uGjID3WYGbWaLUMC1uOAFi%2F5CxGtkXxk%2BOxGtO8fo7YoxJDfaav9BjEvl%2BFM1ag%2Fx0ow%3D%3D">
-    <meta property="og:url" content="https://bowser-build-buddy.lovable.app">
+    <meta property="og:title" content="Bowser — AI Browser" />
+    <meta property="og:description" content="Bowser is an AI-powered browser that generates web pages, browses the web, and assists with any task." />
+    <meta property="og:url" content="https://bowser-ai.lovable.app" />
+    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/2f07597b-b2d6-4c36-8a80-7e7515e8ceb7?Expires=1774767083&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=q9tj%2BkxyovBjJ8fwYgSGvbUmWeOTon%2BJ8n2eVl0VzySw6ihaJqJ%2F2O8FQ%2FXNZe%2B169%2BP9Cb6%2BL5dBrHUr%2F6PRgI1%2FRgUZWA1QuhND9vHcV8d6JnbcrrLPWqskCZUfh4%2BQ9bs%2BTSTBt7RLty8amcLe3Y4JMZ7detI%2FaSyBDwQwr2LhZ4tz67IwkuvfuI1yOnHPmNsIhYhSCLuq2UYy3Tcl%2BYBUy0n%2BVffSp86Gk%2BmPEoVwmDdLQ9RUyOBKxRaiyiVM3V1ygpLFwBb0X9lE2uGjID3WYGbWaLUMC1uOAFi%2F5CxGtkXxk%2BOxGtO8fo7YoxJDfaav9BjEvl%2BFM1ag%2Fx0ow%3D%3D" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
-    
-    
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/2f07597b-b2d6-4c36-8a80-7e7515e8ceb7?Expires=1774767083&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=q9tj%2BkxyovBjJ8fwYgSGvbUmWeOTon%2BJ8n2eVl0VzySw6ihaJqJ%2F2O8FQ%2FXNZe%2B169%2BP9Cb6%2BL5dBrHUr%2F6PRgI1%2FRgUZWA1QuhND9vHcV8d6JnbcrrLPWqskCZUfh4%2BQ9bs%2BTSTBt7RLty8amcLe3Y4JMZ7detI%2FaSyBDwQwr2LhZ4tz67IwkuvfuI1yOnHPmNsIhYhSCLuq2UYy3Tcl%2BYBUy0n%2BVffSp86Gk%2BmPEoVwmDdLQ9RUyOBKxRaiyiVM3V1ygpLFwBb0X9lE2uGjID3WYGbWaLUMC1uOAFi%2F5CxGtkXxk%2BOxGtO8fo7YoxJDfaav9BjEvl%2BFM1ag%2Fx0ow%3D%3D">
+    <meta name="twitter:title" content="Bowser — AI Browser" />
+    <meta name="twitter:description" content="Bowser is an AI-powered browser that generates web pages, browses the web, and assists with any task." />
+    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/2f07597b-b2d6-4c36-8a80-7e7515e8ceb7?Expires=1774767083&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=q9tj%2BkxyovBjJ8fwYgSGvbUmWeOTon%2BJ8n2eVl0VzySw6ihaJqJ%2F2O8FQ%2FXNZe%2B169%2BP9Cb6%2BL5dBrHUr%2F6PRgI1%2FRgUZWA1QuhND9vHcV8d6JnbcrrLPWqskCZUfh4%2BQ9bs%2BTSTBt7RLty8amcLe3Y4JMZ7detI%2FaSyBDwQwr2LhZ4tz67IwkuvfuI1yOnHPmNsIhYhSCLuq2UYy3Tcl%2BYBUy0n%2BVffSp86Gk%2BmPEoVwmDdLQ9RUyOBKxRaiyiVM3V1ygpLFwBb0X9lE2uGjID3WYGbWaLUMC1uOAFi%2F5CxGtkXxk%2BOxGtO8fo7YoxJDfaav9BjEvl%2BFM1ag%2Fx0ow%3D%3D" />
 
-    <link rel="canonical" href="https://bowser-build-buddy.lovable.app" />
+    <link rel="canonical" href="https://bowser-ai.lovable.app" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
-    <meta property="og:title" content="Bowser">
-  <meta name="twitter:title" content="Bowser">
-  <meta property="og:description" content="An AI-native browser built for focused, intelligent browsing.">
-  <meta name="twitter:description" content="An AI-native browser built for focused, intelligent browsing.">
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" href="/pwa-192x192.png" sizes="192x192">
-</head>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" sizes="192x192" />
+
+    <!-- App loading screen (removed once React mounts) -->
+    <style id="bowser-splash-style">
+      #bowser-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #09090b;
+        transition: opacity 0.3s ease;
+      }
+      #bowser-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #bowser-splash img {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        animation: splash-pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes splash-pulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+    </style>
+  </head>
 
   <body>
+    <!-- Splash screen -->
+    <div id="bowser-splash">
+      <img src="/pwa-192x192.png" alt="Bowser" />
+    </div>
+
+    <noscript>
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#09090b;color:#ededed;font-family:system-ui,sans-serif;padding:24px;text-align:center;">
+        <div>
+          <h1 style="font-size:20px;margin-bottom:8px;">Bowser requires JavaScript</h1>
+          <p style="color:#737373;font-size:14px;">Please enable JavaScript in your browser settings and reload the page.</p>
+        </div>
+      </div>
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
