@@ -236,6 +236,12 @@ const BowserApp: React.FC = () => {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape closes side panel
+      if (e.key === 'Escape' && sidePanelOpen) {
+        setSidePanelOpen(false);
+        return;
+      }
+
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
 
@@ -266,7 +272,7 @@ const BowserApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab, generate]);
+  }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab, generate, sidePanelOpen]);
 
   const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
   const modLabel = isMac ? '⌘' : 'Ctrl+';

@@ -444,7 +444,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
 
       {/* Content area */}
       <div className="browser-content-row" ref={viewportRef}>
-        <div className="browser-viewport" id="bowser-viewport" role="tabpanel" aria-label="Page content">
+        <div className="browser-viewport" id="bowser-viewport" role="tabpanel" aria-label="Page content" aria-controls={`tab-${tabs[activeTabIndex]?.id || ''}`}>
           {children}
         </div>
         {sidePanelOpen && !isMobile && sidePanel}
