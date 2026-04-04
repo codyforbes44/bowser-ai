@@ -600,21 +600,21 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 </button>
                 <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'settings' }));
+                  onOpenSettings?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
                   <span className="text-[13px]">Settings</span>
                 </button>
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'history' }));
+                  onOpenHistory?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
                   <span className="text-[13px]">History</span>
                 </button>
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'bookmarks' }));
+                  onOpenBookmarks?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
