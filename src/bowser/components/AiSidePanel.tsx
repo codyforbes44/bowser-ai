@@ -2,6 +2,35 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { TabKind } from '../types';
 import { streamTextAnalysis, streamWebTabAnalysis, AnalysisAction } from '../services/geminiService';
 
+// Simple focus trap: cycles Tab/Shift+Tab within a container
+function useFocusTrap(ref: React.RefObject<HTMLElement | null>, active: boolean) {
+  useEffect(() => {
+    if (!active || !ref.current) return;
+    const container = ref.current;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    container.addEventListener('keydown', handleKeyDown);
+    // Focus first focusable element on open
+    const firstFocusable = container.querySelector<HTMLElement>('button, input, [tabindex]');
+    firstFocusable?.focus();
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [active, ref]);
+}
+
 interface AiSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -85,12 +114,15 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
     if (question.trim()) runAction('ask', question.trim());
   };
 
+  const panelRef = useRef<HTMLElement>(null);
+  useFocusTrap(panelRef, isOpen);
+
   if (!isOpen) return null;
 
   const actions = isWebTab ? WEB_TAB_ACTIONS : AI_TAB_ACTIONS;
 
   return (
-    <aside className="side-panel" role="complementary" aria-label="Assistant">
+    <aside ref={panelRef} className="side-panel" role="complementary" aria-label="Assistant">
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
@@ -155,7 +187,23 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                   <div className="bw-shimmer h-3 w-3/5" />
                 </div>
               )}
-              {error && !response && <div className="text-[12px] py-2" style={{ color: 'var(--bw-red)' }} role="alert">{error}</div>}
+              {error && !response && (
+                <div className="py-2" role="alert">
+                  <p className="text-[12px] mb-2" style={{ color: 'var(--bw-red)' }}>{error}</p>
+                  {activeAction && (
+                    <button
+                      onClick={() => runAction(activeAction, question.trim() || undefined)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
+                      style={{ background: 'var(--bw-accent)', color: '#fff' }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">refresh</span>
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
               <div className={`side-panel-text ${loading && response ? 'streaming-cursor' : ''}`}>{response}</div>
               {loading && response && (
                 <button onClick={handleStop} className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Stop generating">

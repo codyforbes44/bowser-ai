@@ -337,6 +337,18 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                   <img src={faviconUrl} alt="" className="w-4 h-4 rounded-sm" />
                 </div>
               )}
+              {/* Mode badge */}
+              {!isFocused && (
+                <span
+                  className="flex-shrink-0 ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide select-none"
+                  style={{
+                    background: isBrowserMode ? 'hsla(var(--bw-green-raw, 142 71% 45%), 0.15)' : 'hsla(var(--bw-accent-raw, 245 58% 51%), 0.12)',
+                    color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-accent)',
+                  }}
+                >
+                  {isBrowserMode ? 'Web' : 'Create'}
+                </span>
+              )}
               <input
                 ref={inputRef}
                 type="text"

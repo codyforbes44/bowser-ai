@@ -78,19 +78,32 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
   }
 
   if (error) {
+    const isBlocked = error.includes('blocked') || error.includes('refused') || error.includes('403') || error.includes('CORS');
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
-        <span className="material-symbols-outlined text-4xl opacity-40">cloud_off</span>
-        <p className="text-sm opacity-60 text-center max-w-md">
-          This page couldn't be loaded through the proxy: {error}
+        <span className="material-symbols-outlined text-4xl" style={{ color: isBlocked ? 'var(--bw-text-quaternary)' : 'var(--bw-red)', opacity: 0.6 }} aria-hidden="true">
+          {isBlocked ? 'block' : 'cloud_off'}
+        </span>
+        <p className="text-[13px] font-medium" style={{ color: 'var(--bw-text-secondary)' }}>
+          {isBlocked ? 'This site can\'t be displayed here' : 'Failed to load page'}
         </p>
-        <button
-          onClick={handleOpenExternal}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: 'var(--bw-accent)', color: '#fff' }}
-        >
-          Open in new tab ↗
-        </button>
+        <p className="text-[11px] text-center max-w-sm leading-relaxed" style={{ color: 'var(--bw-text-quaternary)' }}>
+          {isBlocked
+            ? 'This website blocks embedded viewing. You can open it directly in a new browser tab.'
+            : error}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={handleOpenExternal}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium transition-colors"
+            style={{ background: 'var(--bw-accent)', color: '#fff' }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }} aria-hidden="true">open_in_new</span>
+            Open in new tab
+          </button>
+        </div>
       </div>
     );
   }
