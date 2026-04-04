@@ -1,19 +1,45 @@
 export type TabKind = 'web' | 'ai' | 'agent' | 'new-tab' | 'history' | 'bookmarks' | 'settings';
 
+/** Strongly-typed agent action definitions */
+export type AgentActionType =
+  | 'browse_url'
+  | 'search_web'
+  | 'generate_page'
+  | 'extract_data'
+  | 'analyze_image'
+  | 'user_confirm';
+
+export interface AgentAction {
+  type: AgentActionType;
+  description: string;
+  params: Record<string, unknown>;
+  requiresConfirmation?: boolean;
+}
+
 export interface AgentStep {
   id: string;
   tool: string;
   input: string;
   output: string;
-  status: 'pending' | 'running' | 'done' | 'error';
+  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_confirmation';
   timestamp: number;
+  action?: AgentAction;
 }
 
 export interface AgentTask {
   goal: string;
   steps: AgentStep[];
-  status: 'planning' | 'executing' | 'complete' | 'error';
+  status: 'planning' | 'executing' | 'complete' | 'error' | 'awaiting_confirmation';
   finalHtml: string;
+  pinnedInsights?: PinnedInsight[];
+  preconnectDomains?: string[];
+}
+
+export interface PinnedInsight {
+  id: string;
+  text: string;
+  source: string;
+  timestamp: number;
 }
 
 export interface Breadcrumb {
@@ -92,6 +118,7 @@ export interface Tab {
   customTitle?: string;
   webHistory: string[];
   webHistoryIndex: number;
+  agentTask?: AgentTask;
 }
 
 /** Stable unique ID using crypto.randomUUID — safe across page reloads and session restores */
