@@ -89,7 +89,7 @@ export function useTabManager() {
         return next;
       });
     } else if (closed.tabKind === 'ai' && closed.lastPrompt && generateFn) {
-      const newTab = createTab('new-tab');
+      const newTab = createTab('web');
       setTabs(prev => {
         const next = [...prev, newTab];
         queueMicrotask(() => setActiveTabIndex(next.length - 1));
