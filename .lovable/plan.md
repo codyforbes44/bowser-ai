@@ -1,63 +1,74 @@
 
 
-# Review: Proposed Refactoring Items vs Current Codebase
+# Add "Rebuild from URL" Feature
 
-After reading the existing code, here is my assessment of each item. Most of what's proposed **already exists** in a slightly different shape. I'll flag what's genuinely useful vs redundant.
+## What this does
+Adds the ability to paste a URL into Bowser and have AI fetch, analyze, and rebuild the page as a best-in-class AI-generated version. This combines the existing **proxy-web** scraping with the **generate-page** AI generation into a new flow.
 
----
+## How it works for the user
+1. User pastes a URL in the omnibox while in **Create** mode (not Web mode)
+2. Bowser detects it's a URL in Create mode and triggers the "rebuild" flow
+3. The proxy fetches the source HTML, then the AI analyzes it and generates an improved version
+4. The rebuilt page streams in like any other AI-generated page
 
-## Already Implemented (Skip or Minor Polish)
+## Technical approach
 
-| # | Proposal | Current State | Verdict |
-|---|----------|---------------|---------|
-| 1 | Shared types in `src/types/bowser.ts` | `src/bowser/types.ts` already has `Tab`, `TabKind`, `Breadcrumb`, `Page`, `FormFieldState`, `TokenCount`, etc. | **Skip.** Moving to `src/types/` adds indirection with no benefit. The existing types are already well-structured. |
-| 2 | `useTabs` hook | `useTabManager` already does this: tab array, activeTabIndex, addTab, closeTab, switchTab, updateTab, reorder, pin, rename, reopen closed. | **Skip.** Renaming adds churn with zero value. |
-| 2 | `useNavigation` hook | Back/forward/refresh logic exists in `BowserApp.tsx` (lines 111–168) handling both AI and web history. | **Could extract** but it's ~60 lines tightly coupled to tab state. Low priority. |
-| 2 | `useOmnibox` hook | Already exists at `src/bowser/hooks/useOmnibox.ts` with `parseOmniboxInput` and search engine routing. | **Skip.** |
-| 2 | `useAIJob` hook | Already exists as `useAIGenerate` with AbortController map, streaming, cleanup. | **Skip.** It does more than the proposal (multi-tab abort tracking). |
-| 2 | `useBowserSettings` hook | Already exists at `src/bowser/hooks/useBowserSettings.ts` with typed getters/setters for font size, tab limit, search engine. | **Skip.** |
-| 3 | Thin BowserApp | BowserApp already imports `useTabManager`, `useOmnibox`, `useAIGenerate`, `useBowserSettings`. Keyboard shortcuts (Ctrl+T/W/L/K/1-9, Escape) are already wired in `BrowserShell`. | **Skip.** Already done. |
-| 5 | New Tab static first paint | `NewTab` uses `useMemo` for recent prompts and activity — no async calls on mount. | **Already static.** Auto-focus and empty states are minor polish. |
-| 10 | Accessibility | `BrowserShell` already has `role='tablist'`, `role='tab'`, `aria-selected`, `aria-label` on icon buttons. `AddressBar` has `role='combobox'`. `AiSidePanel` has `aria-label`, `aria-live`, `role='toolbar'`. | **Largely done.** Focus trapping on side panel is the one gap. |
+### 1. New Edge Function: `rebuild-from-url`
+**File:** `supabase/functions/rebuild-from-url/index.ts`
 
-## Worth Doing (Genuine Improvements)
+- Accepts `{ url: string, isMobile: boolean }`
+- Step 1: Fetches the source page HTML using the same logic as `proxy-web` (fetch with browser-like headers)
+- Step 2: Strips scripts/styles, extracts meaningful content (text, structure, images, navigation)
+- Step 3: Sends the extracted content + a specialized system prompt to the AI gateway for streaming rebuild
+- System prompt instructs the AI to analyze the source content and recreate it as a polished, best-in-class implementation with improved design, accessibility, and UX
+- Returns SSE stream (same format as `generate-page`)
+- Handles 429/402 rate limit errors
 
-| # | Proposal | Value | Effort |
-|---|----------|-------|--------|
-| 4 | Omnibox mode badge | Show "Web" or "Create" badge inside address bar based on current tab mode. Nice UX clarity. | Small |
-| 5 | New Tab auto-focus | Auto-focus search bar when new tab opens. | Trivial |
-| 5 | Empty state for recent items | Show a message when no recent activity exists. | Trivial |
-| 6 | AI Side Panel error retry | Add a retry button on error in `AiSidePanel`. Currently shows error text but no retry action. | Small |
-| 7 | WebProxy blocked-site fallback | `WebProxy` exists but could add a cleaner "blocked site" UI with "Open in new tab" button when proxy fails. Currently shows generic error. | Small |
-| 8 | Settings schema-driven rendering | Currently manual rows. A schema array would reduce code and make adding settings easier. | Medium |
-| 9 | StateDisplay component | Centralizing loading/empty/error states would reduce duplication across panels. | Medium |
-| 10 | Side panel focus trap | The AI side panel doesn't trap focus when open. This is the main a11y gap. | Small |
+### 2. Update Navigation Logic
+**File:** `src/bowser/utils/navigation.ts`
 
----
+- In `parseOmniboxInput`: when `currentKind === 'ai'` and input looks like a URL, return a new decision: `{ kind: 'ai', url: trimmed, query: trimmed, rebuild: true }`
+- Add `rebuild?: boolean` to `NavigationDecision` interface
 
-## Recommendation
+### 3. Update Omnibox Hook
+**File:** `src/bowser/hooks/useOmnibox.ts`
 
-**Don't do items 1, 2, 3** — they propose rebuilding what already exists under different names. This is pure churn.
+- When `decision.rebuild === true`, call a new `rebuild` function instead of `generate`
 
-**Do these 8 targeted improvements:**
+### 4. Add Rebuild Streaming Service
+**File:** `src/bowser/services/geminiService.ts`
 
-1. **Omnibox mode badge** — Add a small "Web" / "Create" chip inside `AddressBar` based on `activeTab.tabKind`
-2. **New Tab auto-focus** — `useEffect` to focus the search input on mount in `NewTab`
-3. **New Tab empty state** — Show friendly message when `recentActivity` and `recentPrompts` are empty
-4. **AI Panel retry button** — Add a "Try again" button next to error messages in `AiSidePanel`
-5. **WebProxy fallback UI** — Improve error state with "Open in new tab" button and friendly messaging
-6. **Schema-driven Settings** — Replace manual setting rows with a typed config array in `SettingsTab`
-7. **StateDisplay component** — Create `src/bowser/components/StateDisplay.tsx` for reusable loading/empty/error states
-8. **Side panel focus trap** — Trap focus within `AiSidePanel` when open, release on close
+- Add `streamPageRebuild(url, abortSignal, isMobile)` function
+- Calls the new `rebuild-from-url` edge function
+- Returns same `AsyncGenerator<string>` format as `streamPageGeneration`
 
-### Files to change
+### 5. Add Rebuild to AI Generate Hook
+**File:** `src/bowser/hooks/useAIGenerate.ts`
 
+- Add `rebuild(url, targetTabId?)` method that calls `streamPageRebuild` and manages tab state (loading, streaming, history) identically to `generate`
+
+### 6. Wire into BowserApp
+**File:** `src/bowser/BowserApp.tsx`
+
+- Pass `rebuild` from `useAIGenerate` into `useOmnibox` deps
+- No other changes needed; the tab rendering is already handled
+
+## Edge Function System Prompt (key part)
+The rebuild prompt will instruct the AI to:
+- Analyze the source page's purpose, content, and structure
+- Recreate it as a modern, polished implementation
+- Use Tailwind CSS, Google Fonts, Material Symbols icons
+- Improve layout, typography, color scheme, and accessibility
+- Preserve all meaningful content and navigation structure
+- Make it feel like a premium redesign of the original
+
+## Files to create/modify
 | File | Change |
 |---|---|
-| `src/bowser/components/AddressBar.tsx` | Add mode badge (Web/Create) |
-| `src/bowser/components/NewTab.tsx` | Auto-focus search, add empty states |
-| `src/bowser/components/AiSidePanel.tsx` | Add retry button on error, use StateDisplay |
-| `src/bowser/components/WebProxy.tsx` | Improve error/blocked fallback UI |
-| `src/bowser/components/SettingsTab.tsx` | Refactor to schema-driven rendering |
-| `src/bowser/components/StateDisplay.tsx` | **New** — reusable loading/empty/error component |
+| `supabase/functions/rebuild-from-url/index.ts` | **New** — fetch source + AI rebuild |
+| `src/bowser/utils/navigation.ts` | Add `rebuild` flag to NavigationDecision |
+| `src/bowser/services/geminiService.ts` | Add `streamPageRebuild` function |
+| `src/bowser/hooks/useAIGenerate.ts` | Add `rebuild` method |
+| `src/bowser/hooks/useOmnibox.ts` | Route URL-in-Create-mode to rebuild |
+| `src/bowser/BowserApp.tsx` | Pass rebuild into useOmnibox |
 
