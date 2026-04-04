@@ -1,4 +1,20 @@
-export type TabKind = 'web' | 'ai' | 'new-tab' | 'history' | 'bookmarks' | 'settings';
+export type TabKind = 'web' | 'ai' | 'agent' | 'new-tab' | 'history' | 'bookmarks' | 'settings';
+
+export interface AgentStep {
+  id: string;
+  tool: string;
+  input: string;
+  output: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  timestamp: number;
+}
+
+export interface AgentTask {
+  goal: string;
+  steps: AgentStep[];
+  status: 'planning' | 'executing' | 'complete' | 'error';
+  finalHtml: string;
+}
 
 export interface Breadcrumb {
   sitename: string;
