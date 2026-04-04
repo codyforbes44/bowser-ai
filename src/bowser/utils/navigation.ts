@@ -18,6 +18,16 @@ export interface NavigationDecision {
   rebuild?: boolean;
 }
 
+function looksLikeUrl(input: string): boolean {
+  if (/^https?:\/\//i.test(input)) {
+    try { new URL(input); return true; } catch { return false; }
+  }
+  if (!input.includes(' ') && /^[\w-]+(\.[\w-]+)+/.test(input)) {
+    try { new URL(`https://${input}`); return true; } catch { return false; }
+  }
+  return false;
+}
+
 export function parseOmniboxInput(input: string, currentKind: TabKind): NavigationDecision {
   const trimmed = input.trim();
   
@@ -35,9 +45,7 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
   }
 
   // Check if input looks like a URL
-  const isUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i.test(trimmed);
-
-  if (isUrl) {
+  if (looksLikeUrl(trimmed)) {
     const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
     return { kind: 'web', url };
   }
@@ -50,16 +58,20 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
   }
 
   if (currentKind === 'ai') {
-    // If the input looks like a URL in Create mode, trigger rebuild
-    const looksLikeUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i.test(trimmed);
-    if (looksLikeUrl) {
+    if (looksLikeUrl(trimmed)) {
       const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
       return { kind: 'ai', url, query: trimmed, rebuild: true };
     }
     return { kind: 'ai', url: trimmed, query: trimmed };
   }
 
-  // Default: route search queries through AI generation for better results
+  // Default: if on a system page and input is a URL, go to web mode
+  if (looksLikeUrl(trimmed)) {
+    const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    return { kind: 'web', url };
+  }
+
+  // Otherwise route through AI generation
   return { kind: 'ai', url: trimmed, query: trimmed };
 }
 
