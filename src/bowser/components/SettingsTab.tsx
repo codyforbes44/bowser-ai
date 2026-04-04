@@ -98,7 +98,7 @@ const buildSchema = (handlers: {
     title: 'Search',
     items: [
       {
-        type: 'segmented',
+        type: 'dropdown',
         key: 'search-engine',
         label: 'Default search engine',
         description: 'Used for search queries in the address bar.',
