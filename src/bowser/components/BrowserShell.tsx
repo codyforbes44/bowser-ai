@@ -96,6 +96,9 @@ interface BrowserShellProps {
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
   onWebHistoryNavigate?: (index: number) => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
