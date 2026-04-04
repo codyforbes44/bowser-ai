@@ -744,6 +744,19 @@ const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
               <div className="toggle-thumb" />
             </div>
           </label>
+          <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenSettings?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
+            <span className="text-[13px]">Settings</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenHistory?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
+            <span className="text-[13px]">History</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenBookmarks?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
+            <span className="text-[13px]">Bookmarks</span>
+          </button>
         </div>,
         document.body
       )}
