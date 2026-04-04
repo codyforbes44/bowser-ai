@@ -53,6 +53,22 @@ const BowserApp: React.FC = () => {
   useEffect(() => {
     applyBowserTheme(getEffectiveTheme());
     applyFontScale(getFontSize());
+
+    // Handle PWA share target & shortcuts
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const shareUrl = params.get('url');
+    const shareText = params.get('text');
+    const shareTitle = params.get('title');
+
+    if (action === 'share' && (shareUrl || shareText)) {
+      const input = shareUrl || shareText || shareTitle || '';
+      if (input) {
+        setTimeout(() => handleOmnibarNavigate('create', input), 500);
+      }
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
   }, []);
 
   // Auto-fullscreen on first user interaction
