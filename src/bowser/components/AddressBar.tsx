@@ -657,6 +657,7 @@ const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
   onBack, onForward, onRefresh, onStop, onHome,
   canGoBack, canGoForward, isLoading,
   isBrowserMode, onToggleBrowserMode,
+  onOpenSettings, onOpenHistory, onOpenBookmarks,
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
