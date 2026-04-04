@@ -111,6 +111,44 @@ export async function* streamPageGeneration(
   yield `__META__${JSON.stringify({ tokenCount: { input: 0, output: finalOutput } })}`;
 }
 
+// ── Page Rebuild from URL ───────────────────────────────────────────
+export async function* streamPageRebuild(
+  url: string,
+  abortSignal?: AbortSignal,
+  isMobile: boolean = false,
+): AsyncGenerator<string> {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/rebuild-from-url`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ url, isMobile }),
+    signal: abortSignal,
+  });
+
+  if (!response.ok) {
+    let errMsg = 'Rebuild failed';
+    try {
+      const err = await response.json();
+      errMsg = err.error || errMsg;
+    } catch { /* ignore */ }
+    yield `<div class="p-8 text-red-600"><h1>Rebuild Error</h1><p>${errMsg}</p></div>`;
+    return;
+  }
+
+  let totalChars = 0;
+  for await (const chunk of parseSSEStream(response, abortSignal)) {
+    totalChars += chunk.length;
+    const estimated = Math.round(totalChars / 4);
+    yield `__TOKEN__${JSON.stringify({ input: 0, output: estimated, isEstimate: true })}`;
+    yield chunk;
+  }
+
+  const finalOutput = Math.round(totalChars / 4);
+  yield `__META__${JSON.stringify({ tokenCount: { input: 0, output: finalOutput } })}`;
+}
+
 // ── Text Analysis (AI tabs) ─────────────────────────────────────────
 export async function* streamTextAnalysis(
   pageHtml: string,

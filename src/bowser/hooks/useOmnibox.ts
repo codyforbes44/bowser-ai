@@ -23,9 +23,10 @@ export function useOmnibox(deps: {
   currentPage: any;
   updateTabById: (id: string, updater: (t: Tab) => Tab) => void;
   generate: (prompt: string, html: string | null, fallback: Breadcrumb, push: boolean, formState?: any, tabId?: string) => void;
+  rebuild: (url: string, tabId?: string) => void;
   addHistoryEntry: (entry: { url: string; title: string; tabKind: TabKind }) => void;
 }) {
-  const { activeTab, currentPage, updateTabById, generate, addHistoryEntry } = deps;
+  const { activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry } = deps;
 
   const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
     if (!activeTab) return;
@@ -49,6 +50,14 @@ export function useOmnibox(deps: {
 
     if (decision.kind === 'ai') {
       updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
+
+      // Rebuild flow: URL pasted in Create mode
+      if (decision.rebuild) {
+        rebuild(decision.url, tab.id);
+        addHistoryEntry({ url: decision.url, title: `Rebuild: ${decision.url}`, tabKind: 'ai' });
+        return;
+      }
+
       const parsed = parseBreadcrumb(prompt);
       const isEdit = parsed.sitename === activeTab.breadcrumb.sitename && parsed.page && parsed.page !== activeTab.breadcrumb.page;
 

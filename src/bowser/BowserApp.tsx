@@ -36,12 +36,12 @@ const BowserApp: React.FC = () => {
     handleRenameTab, handlePinTab, handleReopenClosedTab, navigateToSystemPage, handleReorderTabs,
   } = useTabManager();
 
-  const { generate, handleStop, handleCreate, abortControllersRef } = useAIGenerate({
+  const { generate, rebuild, handleStop, handleCreate, abortControllersRef } = useAIGenerate({
     activeTab, updateTabById,
   });
 
   const { handleOmnibarNavigate } = useOmnibox({
-    activeTab, currentPage, updateTabById, generate, addHistoryEntry,
+    activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry,
   });
 
   useEffect(() => {
