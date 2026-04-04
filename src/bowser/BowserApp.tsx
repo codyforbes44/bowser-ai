@@ -7,7 +7,7 @@ import { AiSidePanel } from './components/AiSidePanel';
 import { AgentView } from './components/AgentView';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
-import { Breadcrumb, FormFieldState, TabKind, AgentTask } from './types';
+import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
@@ -42,8 +42,7 @@ const BowserApp: React.FC = () => {
     activeTab, updateTabById,
   });
 
-  const { executeAgent, cancelAgent } = useAgentExecute({ updateTabById });
-  const [agentTasks, setAgentTasks] = useState<Map<string, AgentTask>>(new Map());
+  const { executeAgent, cancelAgent, confirmStep, pinInsight, unpinInsight } = useAgentExecute({ updateTabById });
 
   const { handleOmnibarNavigate } = useOmnibox({
     activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry,
@@ -314,7 +313,7 @@ const BowserApp: React.FC = () => {
     }},
   ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate, updateTabById]);
 
-  const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
+  const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web' && activeTab?.tabKind !== 'agent');
   const displayContent = activeTab?.loading ? activeTab.generatedContent : (currentPage?.html || '');
   const sidePanelHtml = activeTab?.tabKind === 'ai' && currentPage ? currentPage.html : null;
 
@@ -432,6 +431,14 @@ const BowserApp: React.FC = () => {
               onShowOnboarding={() => setShowOnboarding(true)}
             />
           </Suspense>
+        ) : activeTab.tabKind === 'agent' ? (
+          <AgentView
+            task={activeTab.agentTask || null}
+            onCancel={() => cancelAgent(activeTab.id)}
+            onConfirmStep={(confirmed) => confirmStep(activeTab.id, confirmed)}
+            onPinInsight={(text, source) => pinInsight(activeTab.id, text, source)}
+            onUnpinInsight={(id) => unpinInsight(activeTab.id, id)}
+          />
         ) : activeTab.tabKind === 'web' ? (
           <WebProxy
             key={activeTab.navigationId}

@@ -1168,3 +1168,86 @@ body {
   .search-widget-iframe { width: 100%; height: 40px; }
   .status-bar { font-size: 11px; padding: 2px 8px; }
 }
+
+/* ==========================================
+   GLASSMORPHISM DARK MODE
+   ========================================== */
+
+:root {
+  --bw-glass-bg: rgba(17, 17, 17, 0.72);
+  --bw-glass-border: rgba(255, 255, 255, 0.06);
+  --bw-glass-blur: 20px;
+}
+
+[data-bowser-theme="light"] {
+  --bw-glass-bg: rgba(255, 255, 255, 0.72);
+  --bw-glass-border: rgba(0, 0, 0, 0.06);
+  --bw-glass-blur: 20px;
+}
+
+/* Glassmorphism surfaces */
+.mobile-bottom-chrome {
+  background: var(--bw-glass-bg);
+  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  border-top-color: var(--bw-glass-border);
+}
+
+.mobile-tab-bar {
+  background: transparent;
+}
+
+.mobile-bottom-sheet {
+  background: var(--bw-glass-bg);
+  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  border: 1px solid var(--bw-glass-border);
+  border-bottom: none;
+}
+
+.command-palette {
+  background: var(--bw-glass-bg);
+  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  border-color: var(--bw-glass-border);
+}
+
+.dropdown-menu {
+  background: var(--bw-glass-bg);
+  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  border-color: var(--bw-glass-border);
+}
+
+/* ==========================================
+   AGENT GLOW & ANIMATIONS
+   ========================================== */
+
+@keyframes agent-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.02); }
+}
+
+@keyframes agent-icon-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--bw-accent)); }
+  50% { filter: drop-shadow(0 0 12px var(--bw-accent)); }
+}
+
+.agent-icon-pulse {
+  animation: agent-icon-pulse 1.5s ease-in-out infinite;
+}
+
+.agent-working-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bw-accent);
+  animation: agent-glow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--bw-accent), 0 0 16px rgba(99, 102, 241, 0.3);
+}
+
+/* Vibrant accent glow for active agent tabs */
+.tab-mobile.active-tab.tab-accent-ai {
+  background: var(--bw-accent-subtle);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
