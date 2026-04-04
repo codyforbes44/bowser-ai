@@ -1,41 +1,42 @@
 
 
-# Fix Create Mode — Oversized SVG Issue
+# Fix: Missing Stylesheet References in Sandbox Preview
 
 ## Problem
-The screenshot shows the AI generating massive decorative SVG shapes (blue arches) that fill the entire viewport, completely breaking the page layout. The model is interpreting the "use inline SVGs" instruction too broadly — creating large illustrative SVGs instead of small icon SVGs.
+
+The Sandbox content extraction logic (lines 162-195 in `Sandbox.tsx`) only extracts two things from the generated HTML's `<head>`:
+- Google Fonts `<link>` tags (href starting with `https://fonts.googleapis.com/`)
+
+Everything else in `<head>` is discarded — including any `<style>` tags the AI generates for custom CSS (font-face declarations, custom utility classes, component styles). These styles are silently dropped, causing the rendered page to look broken.
 
 ## Root Cause
-The system prompt in `generate-page/index.ts` instructs the model to use inline SVGs for icons but has no constraint on SVG size or usage scope. The model generates large SVG illustrations as hero/decorative elements.
+
+In `Sandbox.tsx`, the content pipeline:
+1. Extracts `<body>` innerHTML → sends as `html`
+2. Extracts font `<link>` hrefs → sends as `linkTags`
+3. **Drops all `<style>` tags from `<head>`** — never forwarded to the iframe
+
+The iframe shell's `CONTENT_UPDATE` handler (line 86) only sets `body.innerHTML` and injects font `<link>` elements. There is no mechanism to inject `<style>` blocks.
 
 ## Fix
 
-### 1. Update system prompt (`supabase/functions/generate-page/index.ts`)
+### 1. `src/bowser/components/Sandbox.tsx` — Extract and forward `<style>` tags
 
-Add explicit rules to the STRICT STYLE RULES section:
+In the `useEffect` that processes `htmlContent`:
+- After extracting font `<link>` hrefs, also extract all `<style>` tag contents from the `<head>` section
+- Send them as a new `styleTags` array in the `CONTENT_UPDATE` message
 
-- **SVGs are for icons only** — max size `w-6 h-6` (24px). Never use SVGs as hero graphics, decorative illustrations, logos, or background art.
-- **For decorative/hero visuals** — use Unsplash photos or Tailwind gradient backgrounds. Never generate large custom SVG artwork.
-- **All SVG elements must have explicit `width` and `height` attributes** or Tailwind size classes (`w-5 h-5`, `w-6 h-6`).
-- Add a negative example: "NEVER create large decorative SVG shapes, arches, blobs, or abstract art as SVG elements."
+In the iframe shell's `CONTENT_UPDATE` message handler:
+- Remove previously injected `<style data-bowser-style>` elements
+- Inject each received style block as a new `<style data-bowser-style>` element in `<head>`
 
-### 2. Add SVG size safety net in Sandbox (`src/bowser/components/Sandbox.tsx`)
+### 2. CSP adjustment (if needed)
 
-Add a CSS rule in the shell's `<style>` block to cap any unconstrained SVGs:
-```css
-svg:not([class*="w-"]):not([width]) { max-width: 48px; max-height: 48px; }
-```
+The current CSP already has `style-src 'unsafe-inline'`, so dynamically created `<style>` elements will work. No CSP change needed.
 
-This prevents runaway SVGs from breaking the layout even if the AI ignores the prompt rules.
-
-### 3. Redeploy the edge function
-
-Deploy the updated `generate-page` function.
-
-## Files Changed
+### Files Changed
 
 | File | Change |
 |---|---|
-| `supabase/functions/generate-page/index.ts` | Add SVG size constraints to system prompt |
-| `src/bowser/components/Sandbox.tsx` | Add CSS safety cap for unconstrained SVGs |
+| `src/bowser/components/Sandbox.tsx` | Extract `<style>` from generated `<head>`, forward via postMessage, inject in iframe shell handler |
 
