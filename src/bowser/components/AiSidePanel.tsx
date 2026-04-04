@@ -155,7 +155,23 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                   <div className="bw-shimmer h-3 w-3/5" />
                 </div>
               )}
-              {error && !response && <div className="text-[12px] py-2" style={{ color: 'var(--bw-red)' }} role="alert">{error}</div>}
+              {error && !response && (
+                <div className="py-2" role="alert">
+                  <p className="text-[12px] mb-2" style={{ color: 'var(--bw-red)' }}>{error}</p>
+                  {activeAction && (
+                    <button
+                      onClick={() => runAction(activeAction, question.trim() || undefined)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
+                      style={{ background: 'var(--bw-accent)', color: '#fff' }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">refresh</span>
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
               <div className={`side-panel-text ${loading && response ? 'streaming-cursor' : ''}`}>{response}</div>
               {loading && response && (
                 <button onClick={handleStop} className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Stop generating">
