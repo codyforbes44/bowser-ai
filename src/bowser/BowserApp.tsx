@@ -515,6 +515,10 @@ const BowserApp: React.FC = () => {
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
       />
+      <ShortcutsOverlay
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </>
   );
 };
