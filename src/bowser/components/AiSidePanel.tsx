@@ -2,6 +2,35 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { TabKind } from '../types';
 import { streamTextAnalysis, streamWebTabAnalysis, AnalysisAction } from '../services/geminiService';
 
+// Simple focus trap: cycles Tab/Shift+Tab within a container
+function useFocusTrap(ref: React.RefObject<HTMLElement | null>, active: boolean) {
+  useEffect(() => {
+    if (!active || !ref.current) return;
+    const container = ref.current;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = container.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    container.addEventListener('keydown', handleKeyDown);
+    // Focus first focusable element on open
+    const firstFocusable = container.querySelector<HTMLElement>('button, input, [tabindex]');
+    firstFocusable?.focus();
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [active, ref]);
+}
+
 interface AiSidePanelProps {
   isOpen: boolean;
   onClose: () => void;
