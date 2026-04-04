@@ -562,9 +562,52 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
               <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
-          {menuOpen && (
+            {menuOpen && (
               <div className="dropdown-menu" role="menu">
-                {/* Intentionally empty — live data toggle is in the address bar globe button */}
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                  <span className="text-[13px]">New tab</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
+                  <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
+                </button>
+                {onToggleSidePanel && (
+                  <button className="dropdown-menu-item" role="menuitem" onClick={() => { onToggleSidePanel(); setMenuOpen(false); }}>
+                    <span className="material-symbols-outlined text-base" aria-hidden="true">auto_awesome</span>
+                    <span className="text-[13px]">Assistant</span>
+                  </button>
+                )}
+                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  if (document.fullscreenElement) { document.exitFullscreen(); } else { document.documentElement.requestFullscreen?.(); }
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen'}</span>
+                  <span className="text-[13px]">{document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen'}</span>
+                </button>
+                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'settings' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
+                  <span className="text-[13px]">Settings</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'history' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
+                  <span className="text-[13px]">History</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'bookmarks' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
+                  <span className="text-[13px]">Bookmarks</span>
+                </button>
               </div>
             )}
           </div>
