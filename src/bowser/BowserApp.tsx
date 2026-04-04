@@ -8,7 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ShortcutsOverlay } from './components/ShortcutsOverlay';
 import { ProgressBar } from './components/ProgressBar';
 import { applyBowserTheme, getEffectiveTheme } from './utils/theme';
-import { Breadcrumb, FormFieldState, TabKind, createTab } from './types';
+import { Breadcrumb, FormFieldState, TabKind, Tab, createTab } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
