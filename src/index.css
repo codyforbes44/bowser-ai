@@ -452,13 +452,16 @@ body {
   top: 100%;
   right: 0;
   margin-top: 4px;
-  background: var(--bw-bg-elevated);
-  border: 1px solid var(--bw-border);
+  background: var(--bw-glass-bg);
+  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
+  border: 1px solid var(--bw-glass-border);
   border-radius: var(--bw-radius-md);
   padding: 4px;
   min-width: 220px;
   z-index: 100;
   box-shadow: var(--bw-shadow-lg);
+  pointer-events: auto;
 }
 .dropdown-menu-mobile {
   bottom: 100%;
@@ -1212,12 +1215,7 @@ body {
   border-color: var(--bw-glass-border);
 }
 
-.dropdown-menu {
-  background: var(--bw-glass-bg);
-  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
-  border-color: var(--bw-glass-border);
-}
+/* dropdown-menu glassmorphism is merged into the main .dropdown-menu rule */
 
 /* ==========================================
    AGENT GLOW & ANIMATIONS

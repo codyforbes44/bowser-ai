@@ -31,10 +31,22 @@ interface SegmentedSetting {
   set: (v: string) => void;
 }
 
+interface DropdownSetting {
+  type: 'dropdown';
+  key: string;
+  label: string;
+  description: string;
+  options: { value: string; label: string }[];
+  get: () => string;
+  set: (v: string) => void;
+}
+
+type SettingItem = SegmentedSetting | DropdownSetting;
+
 interface SettingSection {
   icon: string;
   title: string;
-  items: SegmentedSetting[];
+  items: SettingItem[];
 }
 
 const searchEngineOptions = (): { value: string; label: string }[] =>
@@ -86,7 +98,7 @@ const buildSchema = (handlers: {
     title: 'Search',
     items: [
       {
-        type: 'segmented',
+        type: 'dropdown',
         key: 'search-engine',
         label: 'Default search engine',
         description: 'Used for search queries in the address bar.',
@@ -168,7 +180,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
             <SectionBlock key={section.title} icon={section.icon} title={section.title}>
               {section.items.map(item => (
                 <SettingsRow key={item.key} label={item.label} description={item.description}>
-                  <SegmentedButtons options={item.options} value={item.get()} onChange={item.set} />
+                  {item.type === 'dropdown' ? (
+                    <DropdownSelect options={item.options} value={item.get()} onChange={item.set} />
+                  ) : (
+                    <SegmentedButtons options={item.options} value={item.get()} onChange={item.set} />
+                  )}
                 </SettingsRow>
               ))}
             </SectionBlock>
@@ -308,3 +324,77 @@ const ActionButton: React.FC<{ label: string; onClick: () => void }> = ({ label,
     {label}
   </button>
 );
+
+const DropdownSelect: React.FC<{ options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }> = ({ options, value, onChange }) => {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const selected = options.find(o => o.value === value);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded text-[12px] font-medium capitalize min-w-[120px] justify-between"
+        style={{
+          border: '1px solid var(--bw-border)',
+          background: 'transparent',
+          color: 'var(--bw-text-primary)',
+          transition: 'all 0.1s ease',
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selected?.label ?? value}</span>
+        <span
+          className="material-symbols-outlined text-[14px]"
+          style={{ color: 'var(--bw-text-quaternary)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+          aria-hidden="true"
+        >expand_more</span>
+      </button>
+      {open && (
+        <div
+          className="absolute top-full right-0 mt-1 rounded-lg z-50 overflow-hidden min-w-[160px]"
+          style={{
+            background: 'var(--bw-glass-bg)',
+            backdropFilter: 'blur(var(--bw-glass-blur)) saturate(180%)',
+            WebkitBackdropFilter: 'blur(var(--bw-glass-blur)) saturate(180%)',
+            border: '1px solid var(--bw-glass-border)',
+            boxShadow: 'var(--bw-shadow-lg)',
+          }}
+          role="listbox"
+        >
+          {options.map(o => (
+            <button
+              key={o.value}
+              className="w-full px-3 py-2.5 text-left text-[12px] font-medium capitalize flex items-center gap-2 transition-colors"
+              style={{
+                color: o.value === value ? 'var(--bw-accent)' : 'var(--bw-text-primary)',
+                background: o.value === value ? 'var(--bw-bg-hover)' : 'transparent',
+                minHeight: '44px',
+              }}
+              onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = 'var(--bw-bg-hover)'; }}
+              onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background = 'transparent'; }}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              role="option"
+              aria-selected={o.value === value}
+            >
+              {o.value === value && (
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">check</span>
+              )}
+              <span>{o.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

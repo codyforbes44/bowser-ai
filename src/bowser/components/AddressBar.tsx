@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Breadcrumb } from '../types';
 import { breadcrumbToDisplay } from '../utils/urlHelpers';
 import { getStorageItem, setStorageItem } from '../utils/storage';
@@ -147,13 +148,19 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       if (e.key === 'Escape') setMenuOpen(false);
     };
     const handleBlur = () => setMenuOpen(false);
+    const handleScroll = () => setMenuOpen(false);
+    const handleResize = () => setMenuOpen(false);
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleEscape);
     window.addEventListener('blur', handleBlur);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
     return () => {
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleEscape);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
     };
   }, [menuOpen]);
 
@@ -502,47 +509,21 @@ export const AddressBar: React.FC<AddressBarProps> = ({
               <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
             </button>
           )}
-          <div className="menu-container" ref={menuRef}>
-            <button className="nav-btn nav-btn-mobile" onClick={() => setMenuOpen(!menuOpen)} aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
-              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
-            {menuOpen && (
-              <div className="dropdown-menu dropdown-menu-mobile" role="menu">
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onBack(); setMenuOpen(false); }} disabled={!canGoBack}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                  <span className="text-[13px]">Back</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onForward(); setMenuOpen(false); }} disabled={!canGoForward}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
-                  <span className="text-[13px]">Forward</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
-                  <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">home</span>
-                  <span className="text-[13px]">New tab</span>
-                </button>
-                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
-                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[13px]">
-                    {isBrowserMode ? 'Web mode' : 'Create mode'}
-                  </span>
-                  <div
-                    className={`toggle-track ${!isBrowserMode ? 'active' : ''}`}
-                    onClick={onToggleBrowserMode}
-                    role="switch"
-                    aria-checked={!isBrowserMode}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleBrowserMode(); } }}
-                  >
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
-              </div>
-            )}
-          </div>
+          <MobileMenuPortal
+            menuRef={menuRef}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+            onBack={onBack}
+            onForward={onForward}
+            onRefresh={onRefresh}
+            onStop={onStop}
+            onHome={onHome}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            isLoading={isLoading}
+            isBrowserMode={isBrowserMode}
+            onToggleBrowserMode={onToggleBrowserMode}
+          />
         </div>
       ) : (
         <>
@@ -587,13 +568,178 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
               <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
-          {menuOpen && (
+            {menuOpen && (
               <div className="dropdown-menu" role="menu">
-                {/* Intentionally empty — live data toggle is in the address bar globe button */}
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">add</span>
+                  <span className="text-[13px]">New tab</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
+                  <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
+                </button>
+                {onToggleSidePanel && (
+                  <button className="dropdown-menu-item" role="menuitem" onClick={() => { onToggleSidePanel(); setMenuOpen(false); }}>
+                    <span className="material-symbols-outlined text-base" aria-hidden="true">auto_awesome</span>
+                    <span className="text-[13px]">Assistant</span>
+                  </button>
+                )}
+                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  if (document.fullscreenElement) { document.exitFullscreen(); } else { document.documentElement.requestFullscreen?.(); }
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen'}</span>
+                  <span className="text-[13px]">{document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen'}</span>
+                </button>
+                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'settings' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
+                  <span className="text-[13px]">Settings</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'history' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
+                  <span className="text-[13px]">History</span>
+                </button>
+                <button className="dropdown-menu-item" role="menuitem" onClick={() => {
+                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'bookmarks' }));
+                  setMenuOpen(false);
+                }}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
+                  <span className="text-[13px]">Bookmarks</span>
+                </button>
               </div>
             )}
           </div>
         </>
+      )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  Mobile Menu Portal — renders outside stacking context             */
+/* ------------------------------------------------------------------ */
+
+interface MobileMenuPortalProps {
+  menuRef: React.RefObject<HTMLDivElement>;
+  menuOpen: boolean;
+  setMenuOpen: (v: boolean) => void;
+  onBack: () => void;
+  onForward: () => void;
+  onRefresh: () => void;
+  onStop: () => void;
+  onHome: () => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  isLoading: boolean;
+  isBrowserMode: boolean;
+  onToggleBrowserMode: () => void;
+}
+
+const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
+  menuRef, menuOpen, setMenuOpen,
+  onBack, onForward, onRefresh, onStop, onHome,
+  canGoBack, canGoForward, isLoading,
+  isBrowserMode, onToggleBrowserMode,
+}) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
+
+  useEffect(() => {
+    if (menuOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right });
+    }
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const scroll = () => setMenuOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    window.addEventListener('scroll', scroll, true);
+    window.addEventListener('resize', scroll);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+      window.removeEventListener('scroll', scroll, true);
+      window.removeEventListener('resize', scroll);
+    };
+  }, [menuOpen, setMenuOpen]);
+
+  return (
+    <div ref={menuRef}>
+      <button
+        ref={triggerRef}
+        className="nav-btn nav-btn-mobile"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="More options"
+        aria-haspopup="true"
+        aria-expanded={menuOpen}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+      </button>
+      {menuOpen && pos && createPortal(
+        <div
+          className="dropdown-menu"
+          role="menu"
+          style={{
+            position: 'fixed',
+            bottom: pos.bottom,
+            right: pos.right,
+            top: 'auto',
+            marginTop: 0,
+            zIndex: 9999,
+            pointerEvents: 'auto',
+          }}
+        >
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onBack(); setMenuOpen(false); }} disabled={!canGoBack}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
+            <span className="text-[13px]">Back</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onForward(); setMenuOpen(false); }} disabled={!canGoForward}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
+            <span className="text-[13px]">Forward</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
+            <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">home</span>
+            <span className="text-[13px]">New tab</span>
+          </button>
+          <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+          <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
+            <span className="text-[13px]">
+              {isBrowserMode ? 'Web mode' : 'Create mode'}
+            </span>
+            <div
+              className={`toggle-track ${!isBrowserMode ? 'active' : ''}`}
+              onClick={onToggleBrowserMode}
+              role="switch"
+              aria-checked={!isBrowserMode}
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleBrowserMode(); } }}
+            >
+              <div className="toggle-thumb" />
+            </div>
+          </label>
+        </div>,
+        document.body
       )}
     </div>
   );
