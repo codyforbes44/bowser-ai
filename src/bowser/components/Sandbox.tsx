@@ -98,6 +98,14 @@ const SHELL_HTML = `<!DOCTYPE html>
             document.head.appendChild(link);
           });
 
+          document.head.querySelectorAll('style[data-bowser-style]').forEach(el => el.remove());
+          (e.data.styleTags || []).forEach(css => {
+            const style = document.createElement('style');
+            style.setAttribute('data-bowser-style', 'true');
+            style.textContent = css;
+            document.head.appendChild(style);
+          });
+
           document.fonts.ready.then(() => hideBrokenIcons());
         }
       });
