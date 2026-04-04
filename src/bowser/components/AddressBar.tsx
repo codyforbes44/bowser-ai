@@ -647,6 +647,9 @@ interface MobileMenuPortalProps {
   isLoading: boolean;
   isBrowserMode: boolean;
   onToggleBrowserMode: () => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
 }
 
 const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
