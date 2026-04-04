@@ -28,6 +28,7 @@ const BowserApp: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
