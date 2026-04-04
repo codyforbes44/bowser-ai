@@ -55,7 +55,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, currentPageHtml, formState, isMobile } = await req.json();
+    const { prompt, currentPageHtml, formState, isMobile, conversationHistory } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -77,6 +77,26 @@ serve(async (req) => {
       userPrompt += `\nIMPORTANT: The user is on a MOBILE device with a narrow viewport. Design mobile-first:\n- Use a single-column layout\n- Use responsive Tailwind classes\n- Avoid horizontal scrolling\n- Stack elements vertically\n- Keep navigation simple\n`;
     }
 
+    // Build messages array with conversation context
+    const messages: Array<{ role: string; content: string }> = [
+      { role: "system", content: SYSTEM_PROMPT },
+    ];
+
+    // Include up to 5 previous conversation turns for context
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      const recentHistory = conversationHistory.slice(-5);
+      for (const entry of recentHistory) {
+        if (entry.prompt) {
+          messages.push({ role: "user", content: `Previous request: "${entry.prompt}"` });
+          if (entry.summary) {
+            messages.push({ role: "assistant", content: `[Generated a page: ${entry.summary}]` });
+          }
+        }
+      }
+    }
+
+    messages.push({ role: "user", content: userPrompt });
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -87,10 +107,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
-          ],
+          messages,
           stream: true,
         }),
       }

@@ -76,6 +76,7 @@ export async function* streamPageGeneration(
   abortSignal?: AbortSignal,
   formState?: Array<{ name: string; type: string; value: string }>,
   isMobile: boolean = false,
+  conversationHistory?: Array<{ prompt: string; summary: string }>,
 ): AsyncGenerator<string> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-page`, {
     method: 'POST',
@@ -83,7 +84,7 @@ export async function* streamPageGeneration(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify({ prompt, currentPageHtml, formState, isMobile }),
+    body: JSON.stringify({ prompt, currentPageHtml, formState, isMobile, conversationHistory }),
     signal: abortSignal,
   });
 
