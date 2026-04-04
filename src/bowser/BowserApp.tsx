@@ -122,14 +122,12 @@ const BowserApp: React.FC = () => {
       return;
     }
     if (activeTab.currentIndex > 0) {
-      const prevPage = activeTab.history[activeTab.currentIndex - 1];
       updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex - 1;
         const page = tab.history[newIndex];
         if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      
     }
   }, [activeTab, updateTabById]);
 
