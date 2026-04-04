@@ -66,7 +66,8 @@ export function useAIGenerate(deps: {
     let titleExtracted = false;
 
     try {
-      const stream = streamPageGeneration(prompt, currentHtml, controller.signal, formState, window.innerWidth <= 768);
+      const conversationHistory = getConversationContext(tabId);
+      const stream = streamPageGeneration(prompt, currentHtml, controller.signal, formState, window.innerWidth <= 768, conversationHistory);
 
       for await (const chunk of stream) {
         if (controller.signal.aborted) break;
