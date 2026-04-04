@@ -220,6 +220,7 @@ export const Sandbox: React.FC<SandboxProps> = ({ htmlContent, onNavigate, onAct
       bodyStyle: `background-color: ${isDark ? '#111' : '#fff'}; color: ${isDark ? '#e8eaed' : '#1a1a1a'}; ${bodyInlineStyle}`,
       colorScheme: isDark ? 'dark' : 'light',
       linkTags: fontHrefs,
+      styleTags: styleContents,
     });
 
     if (iframeRef.current) {
