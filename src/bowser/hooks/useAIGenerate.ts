@@ -134,6 +134,9 @@ export function useAIGenerate(deps: {
         }
       });
 
+      // Track conversation context for this tab
+      addConversationEntry(tabId, prompt, fullHtml);
+
     } catch (e: any) {
       if (e?.name === 'AbortError' || controller.signal.aborted) return;
       console.error('Generation failed', e);
