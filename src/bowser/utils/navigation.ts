@@ -15,6 +15,7 @@ export interface NavigationDecision {
   url: string;
   query?: string;
   error?: string;
+  rebuild?: boolean;
 }
 
 export function parseOmniboxInput(input: string, currentKind: TabKind): NavigationDecision {
