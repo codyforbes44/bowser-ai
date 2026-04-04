@@ -102,7 +102,7 @@ export function useTabManager() {
         generateFn(prompt, null, fallback, true, undefined, newTab.id);
       }, 100);
     } else {
-      const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'new-tab';
+      const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'web';
       const newTab = createTab(kind);
       newTab.breadcrumb = { sitename: kind, page: '' };
       setTabs(prev => {

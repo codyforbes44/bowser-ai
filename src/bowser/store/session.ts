@@ -52,7 +52,7 @@ export function restoreWorkspace(): Tab[] | null {
   if (!saved.length) return null;
 
   return saved.map(s => {
-    const tab = createTab(s.tabKind || 'new-tab');
+    const tab = createTab(s.tabKind || 'web');
     if (s.browserUrl) tab.browserUrl = s.browserUrl;
     if (s.customTitle) tab.customTitle = s.customTitle;
     if (s.pinned) tab.pinned = s.pinned;

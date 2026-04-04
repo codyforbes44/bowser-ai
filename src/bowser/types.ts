@@ -122,7 +122,8 @@ export interface Tab {
 }
 
 /** Stable unique ID using crypto.randomUUID — safe across page reloads and session restores */
-export function createTab(tabKind: TabKind = 'new-tab'): Tab {
+export function createTab(tabKind: TabKind = 'web'): Tab {
+  const isWeb = tabKind === 'web';
   return {
     id: crypto.randomUUID(),
     tabKind,
@@ -131,13 +132,13 @@ export function createTab(tabKind: TabKind = 'new-tab'): Tab {
     loading: false,
     loadingMessage: '',
     generatedContent: '',
-    breadcrumb: { sitename: '', page: '' },
+    breadcrumb: isWeb ? { sitename: 'https://google.com', page: '' } : { sitename: '', page: '' },
     tokenCount: null,
     groundingSources: [],
     searchEntryPointHtml: '',
     navigationId: 0,
-    browserUrl: undefined,
-    webHistory: [],
-    webHistoryIndex: -1,
+    browserUrl: isWeb ? 'https://google.com' : undefined,
+    webHistory: isWeb ? ['https://google.com'] : [],
+    webHistoryIndex: isWeb ? 0 : -1,
   };
 }
