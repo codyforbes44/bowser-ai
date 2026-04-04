@@ -45,7 +45,7 @@ export function useTabManager() {
     addRecentlyClosed(closingTab);
 
     if (tabs.length === 1) {
-      const newTab = createTab('new-tab');
+      const newTab = createTab('web');
       setTabs([newTab]);
       setActiveTabIndex(0);
     } else {
