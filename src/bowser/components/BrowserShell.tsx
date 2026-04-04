@@ -97,6 +97,10 @@ interface BrowserShellProps {
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
   onWebHistoryNavigate?: (index: number) => void;
+  onDuplicateTab?: (tab: Tab) => void;
+  onCloseOtherTabs?: (index: number) => void;
+  onShare?: () => void;
+  onDownload?: () => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
