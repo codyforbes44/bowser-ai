@@ -139,11 +139,11 @@ export function useAgentExecute(deps: {
     abortControllersRef.current.set(tabId, controller);
 
     // Predictive preconnect for domains in the goal
-    const preconnectDomains = extractPreconnectDomains(goal);
+    const preconnectDomains = extractPreconnectDomains(cleanGoal);
     injectPreconnectHints(preconnectDomains);
 
     const task: AgentTask = {
-      goal,
+      goal: cleanGoal,
       steps: [],
       status: 'planning',
       finalHtml: '',
@@ -168,7 +168,7 @@ export function useAgentExecute(deps: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${SUPABASE_KEY}`,
         },
-        body: JSON.stringify({ goal, maxSteps: 6 }),
+        body: JSON.stringify({ goal: cleanGoal, maxSteps: 6 }),
         signal: controller.signal,
       });
 
