@@ -86,6 +86,9 @@ const BowserApp: React.FC = () => {
     onSwipeRight: () => {
       if (safeIndex > 0) handleSwitchTab(safeIndex - 1);
     },
+    onPullDown: () => {
+      handleRefresh();
+    },
     enabled: window.innerWidth < 768,
   });
 
