@@ -20,6 +20,7 @@ import { useSwipeGesture } from './hooks/useSwipeGesture';
 const HistoryTab = lazy(() => import('./components/HistoryTab').then(m => ({ default: m.HistoryTab })));
 const BookmarksTab = lazy(() => import('./components/BookmarksTab').then(m => ({ default: m.BookmarksTab })));
 const SettingsTab = lazy(() => import('./components/SettingsTab').then(m => ({ default: m.SettingsTab })));
+const AiSidePanel = lazy(() => import('./components/AiSidePanel').then(m => ({ default: m.AiSidePanel })));
 
 const BowserApp: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
