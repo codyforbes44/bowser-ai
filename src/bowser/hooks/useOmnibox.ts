@@ -50,6 +50,14 @@ export function useOmnibox(deps: {
 
     if (decision.kind === 'ai') {
       updateTabById(tab.id, t => ({ ...t, tabKind: 'ai' }));
+
+      // Rebuild flow: URL pasted in Create mode
+      if (decision.rebuild) {
+        rebuild(decision.url, tab.id);
+        addHistoryEntry({ url: decision.url, title: `Rebuild: ${decision.url}`, tabKind: 'ai' });
+        return;
+      }
+
       const parsed = parseBreadcrumb(prompt);
       const isEdit = parsed.sitename === activeTab.breadcrumb.sitename && parsed.page && parsed.page !== activeTab.breadcrumb.page;
 
