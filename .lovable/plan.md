@@ -1,110 +1,59 @@
 
 
-# Best Practices Refactor — Bowser
+# Verify & Refactor — Full Platform Audit
 
-## Current State Assessment
+## Issues Found
 
-Before planning changes, here's what **already works well**:
-- **Types** exist in `src/bowser/types.ts` with `Tab`, `Page`, `Breadcrumb`, `TokenCount`, etc.
-- **Hooks** exist: `useTabManager`, `useAIGenerate`, `useOmnibox`, `useBowserSettings` — all strongly typed
-- **BowserApp** is already thin orchestration importing those hooks
-- **Keyboard shortcuts** (Ctrl+T/W/L/K/1-9) already implemented
-- **AddressBar** has `aria-label`, Escape handling, search history dropdown
-- **BrowserShell** has `role="tablist"`, `role="tab"`, `aria-selected`, drag-and-drop
-- **AiSidePanel** has streaming, stop button, four actions (Summarize, Key Points, Simplify/Explain, Ask)
-- **WebProxy** component exists with proxy + fallback "Open in new tab"
-- **Settings** already uses reusable `SettingsSection`/`SettingsRow` components
-- **NewTab** has first-run vs returning user views, mode toggle
+### Critical: CSS/Interactivity Broken in Create Mode
+1. **Sandbox CSP blocks Tailwind CDN**: The iframe's Content-Security-Policy has `connect-src 'none'`, which prevents the Tailwind CDN (`cdn.tailwindcss.com`) from fetching its JIT-compiled CSS at runtime. Tailwind CDN needs `connect-src` to fetch the CSS it generates. This means **generated pages may render unstyled** (missing Tailwind utilities).
+2. **sanitizeHtml strips interactive handlers**: `sanitizeHtml()` removes ALL `on*` event handlers (`onclick`, `onsubmit`, etc.). The AI intentionally generates `onclick="BowserAPI.performAction(...)"` and form `onsubmit` handlers for interactivity. The sanitizer **kills all buttons and forms** in AI-generated pages.
+3. **sanitizeHtml applied to WebProxy**: Proxied real websites also have their event handlers stripped, breaking interactive sites.
+4. **Sandbox CSP blocks external images**: `img-src data: blob:` blocks `https://` images. AI-generated pages with external image references show broken images.
 
-The plan below targets **genuine gaps** without duplicating existing code into new locations (which would break imports and add maintenance burden).
+### Moderate
+5. **SettingsTab causes HMR invalidation**: `applyBowserTheme` and `getEffectiveTheme` are exported from `SettingsTab.tsx` (a lazy-loaded component), causing Vite HMR to invalidate and do a full reload every time settings change.
+6. **Empty desktop "More" dropdown**: The desktop address bar "More options" button opens an empty menu.
+7. **Unused `prevPage` variable** in `handleBack` (line 125 of BowserApp).
 
 ---
 
-## Changes
+## Plan
 
-### 1. Shared Types — Extend `src/bowser/types.ts`
+### 1. Fix Sandbox CSP (Critical)
 
-Add missing interfaces to the existing types file (not a new location — moving would break 20+ imports for no benefit):
+Update `SHELL_HTML` in `Sandbox.tsx` to allow:
+- `img-src data: blob: https:` — permit external images
+- `connect-src https://cdn.tailwindcss.com` — allow Tailwind CDN to fetch JIT CSS
+- Keep `script-src 'unsafe-inline' https://cdn.tailwindcss.com` as-is
 
-- `AIJobState` with `status: 'idle' | 'loading' | 'streaming' | 'done' | 'error'`, `content`, `error`, `abortController`
-- `BowserSettings` with `theme`, `searchEngine`, `fontSize`, `tabLimit`
-- `NavigationState` with `canGoBack`, `canGoForward`
+### 2. Fix sanitizeHtml to Preserve BowserAPI Calls (Critical)
 
-Export a barrel from `src/bowser/types.ts` (already the canonical location).
+Rewrite `src/lib/sanitize.ts`:
+- **Do NOT strip event handlers** from AI-generated content in the Sandbox — the Sandbox iframe already sandboxes scripts safely via `sandbox="allow-scripts allow-forms"` (no `allow-same-origin` means it can't access parent).
+- For **WebProxy** (proxied external sites), keep the current sanitization (strip scripts) but the iframe already has `sandbox="allow-scripts allow-same-origin allow-forms"`.
+- Solution: Create two functions:
+  - `sanitizeProxiedHtml(html)` — strips `<script>` tags and `javascript:` URLs (for WebProxy)
+  - `sanitizeAIHtml(html)` — strips only `<script>` tags but **preserves** inline event handlers that call `BowserAPI.*` (for Sandbox — although Sandbox doesn't use sanitize currently, this keeps it available)
+- Actually, reviewing the code: **Sandbox.tsx does NOT call sanitizeHtml** — it sends raw content via postMessage. Only WebProxy calls it. So the fix is: stop stripping `on*` event handlers in sanitizeHtml, since:
+  - Sandbox doesn't use it
+  - WebProxy's iframe has `sandbox` attribute which prevents scripts from escaping
 
-### 2. Create `useAIJob` Hook — `src/bowser/hooks/useAIJob.ts`
+### 3. Extract Theme Utils from SettingsTab (Moderate)
 
-Extract the ad-hoc async state from `AiSidePanel` into a reusable hook:
-- Manages `AIJobState` (idle/loading/streaming/done/error)
-- `start(action, question?)` — begins streaming, updates state
-- `abort()` — calls AbortController
-- `reset()` — returns to idle
-- `retry()` — re-runs last action
-- Cleanup on unmount via AbortController
+Move `applyBowserTheme`, `getEffectiveTheme`, and related helpers out of `SettingsTab.tsx` into a new file `src/bowser/utils/theme.ts`. Update imports in `BowserApp.tsx` and `SettingsTab.tsx`. This fixes the HMR invalidation warning.
 
-### 3. Create `StateDisplay` Component — `src/bowser/components/StateDisplay.tsx`
+### 4. Remove Empty Desktop "More" Dropdown
 
-A unified component for loading, empty, and error states:
-- `<StateDisplay type="loading" message="..." />` — shimmer skeleton
-- `<StateDisplay type="empty" icon="..." title="..." subtitle="..." />`
-- `<StateDisplay type="error" message="..." onRetry={fn} />` — error with retry button
-- Use in: AiSidePanel, WebProxy, NewTab empty states
+The desktop address bar has a "More options" button that opens an empty dropdown. Either:
+- Remove the button entirely on desktop (it serves no purpose)
+- Or populate it with useful actions (Share, View source, etc.)
 
-### 4. Fix AiSidePanel — Use `useAIJob` + `StateDisplay`
+I'll remove it since no actions exist.
 
-- Replace inline `useState` for response/loading/error/activeAction with `useAIJob`
-- Add "Generate" as a fourth quick action alongside Summarize, Explain, Ask
-- Use `StateDisplay` for loading skeleton, error with retry
-- Add blinking cursor class during streaming (already has `streaming-cursor` CSS class)
+### 5. Clean Up Minor Code Issues
 
-### 5. Fix NewTab — Deferred Sections + Auto-focus
-
-- Move `recentPrompts` and `recentActivity` computation into a `useEffect` with `setTimeout(0)` so first paint is instant (just the search bar and branding)
-- Auto-focus the search input on mount (already has `autoFocus` but ensure it works on tab switch too via `useEffect`)
-- Add empty state using `StateDisplay` when no recent items exist (currently shows nothing — add a subtle "No recent activity" message)
-
-### 6. Fix WebProxy — Use `StateDisplay` + Better Error Handling
-
-- Replace inline loading/error JSX with `StateDisplay`
-- Add `sandbox="allow-scripts allow-same-origin allow-forms"` to the iframe (verify current sandbox attrs)
-- Ensure "Open in new tab" fallback always visible on error
-
-### 7. Fix Settings — Schema-Driven Rendering
-
-Replace manual `SettingsSection`/`SettingsRow` blocks with a typed schema array:
-
-```typescript
-interface SettingEntry {
-  key: string;
-  label: string;
-  description: string;
-  section: string;
-  sectionIcon: string;
-  type: 'segmented' | 'action';
-  options?: { value: string; label: string }[];
-  onAction?: () => void;
-}
-```
-
-Render from the schema array with a single `.map()`. Persist changes immediately (already does this).
-
-### 8. Accessibility Improvements
-
-- **AddressBar**: Add `role="combobox"`, `aria-expanded`, `aria-controls` linking to search history dropdown
-- **Side panel**: Add focus trap when open (trap Tab key within panel, return focus on close)
-- **Tab strip**: Already has `role="tablist"` + `role="tab"` + `aria-selected` — verify `aria-controls` links to viewport
-- **Escape key**: Already blurs omnibox — add: close side panel on Escape when panel is focused
-- Audit all icon-only buttons for `aria-label` (most already have them — fill any gaps)
-
-### 9. Omnibox Enhancements
-
-- Add a mode badge inside the address bar showing "Web" or "Create" based on current tab mode (small pill/chip left of input)
-- Add 200ms debounce before parsing input for suggestion display (not for submit — submit remains instant)
-
-### 10. Error Consistency in AI Generation
-
-- In `useAIGenerate`, replace the inline error HTML with a structured error that `Sandbox` can render using `StateDisplay`
-- Add a retry callback that re-runs the last generation
+- Remove unused `prevPage` variable in `handleBack` (BowserApp.tsx line 125)
+- Remove unused `nextPage` variable in `handleForward` (line 149)
 
 ---
 
@@ -112,24 +61,17 @@ Render from the schema array with a single `.map()`. Persist changes immediately
 
 | File | Action |
 |---|---|
-| `src/bowser/types.ts` | Add `AIJobState`, `BowserSettings`, `NavigationState` |
-| `src/bowser/hooks/useAIJob.ts` | **New** — reusable streaming AI state hook |
-| `src/bowser/components/StateDisplay.tsx` | **New** — unified loading/empty/error component |
-| `src/bowser/components/AiSidePanel.tsx` | Refactor to use `useAIJob` + `StateDisplay`, add Generate action |
-| `src/bowser/components/NewTab.tsx` | Deferred sections, auto-focus, empty state |
-| `src/bowser/components/WebProxy.tsx` | Use `StateDisplay`, verify sandbox attrs |
-| `src/bowser/components/SettingsTab.tsx` | Schema-driven rendering |
-| `src/bowser/components/AddressBar.tsx` | Mode badge, combobox ARIA, debounced suggestions |
-| `src/bowser/components/BrowserShell.tsx` | Focus trap for side panel, aria-controls |
-| `src/bowser/hooks/useAIGenerate.ts` | Structured error state with retry |
-| `src/bowser/BowserApp.tsx` | Escape closes side panel |
+| `src/bowser/components/Sandbox.tsx` | Fix CSP: allow `https:` images, allow Tailwind CDN `connect-src` |
+| `src/lib/sanitize.ts` | Stop stripping event handlers (they're sandboxed by iframe attrs) |
+| `src/bowser/utils/theme.ts` | **New** — extract `applyBowserTheme`, `getEffectiveTheme` |
+| `src/bowser/components/SettingsTab.tsx` | Remove theme util exports, import from `utils/theme` |
+| `src/bowser/BowserApp.tsx` | Import theme from `utils/theme`, remove unused vars, remove empty menu |
+| `src/bowser/components/AddressBar.tsx` | Remove empty desktop "More options" button |
 
 ## What We Preserve
 
-- All existing hooks stay in `src/bowser/hooks/` (no pointless relocation)
-- All existing types stay in `src/bowser/types.ts`
-- SSE streaming from `generate-page` edge function — untouched
-- Web/Create mode toggle — untouched
-- Multi-tab support, drag-and-drop, pinning — untouched
-- All keyboard shortcuts — untouched (Escape for panel added)
+- All existing Sandbox interactivity (BowserAPI.navigate, performAction)
+- WebProxy security (still strips `<script>` tags, iframe sandboxed)
+- All tab management, keyboard shortcuts, side panel, bookmarks
+- Mobile layout, bottom chrome, bottom sheet
 
