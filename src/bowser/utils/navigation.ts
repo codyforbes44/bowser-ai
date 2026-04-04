@@ -50,6 +50,12 @@ export function parseOmniboxInput(input: string, currentKind: TabKind): Navigati
   }
 
   if (currentKind === 'ai') {
+    // If the input looks like a URL in Create mode, trigger rebuild
+    const looksLikeUrl = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i.test(trimmed);
+    if (looksLikeUrl) {
+      const url = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+      return { kind: 'ai', url, query: trimmed, rebuild: true };
+    }
     return { kind: 'ai', url: trimmed, query: trimmed };
   }
 
