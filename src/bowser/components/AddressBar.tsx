@@ -24,6 +24,9 @@ interface AddressBarProps {
   canBookmark: boolean;
   isMobile?: boolean;
   onToggleSidePanel?: () => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
   webHistoryPosition?: number;
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
