@@ -193,7 +193,7 @@ async function fetchGitHubContent(owner: string, repo: string): Promise<string> 
   } catch { /* skip */ }
 
   // Fetch root directory listing
-  const keyFiles = ['package.json', 'Cargo.toml', 'pyproject.toml', 'go.mod', 'composer.json', 'Gemfile', 'pom.xml', 'build.gradle'];
+  const keyFiles = ['package.json', 'Cargo.toml', 'pyproject.toml', 'go.mod', 'composer.json', 'Gemfile', 'pom.xml', 'build.gradle', 'tsconfig.json', 'deno.json'];
   try {
     const contentsRes = await fetchGitHub(`/repos/${owner}/${repo}/contents/`);
     if (contentsRes.ok) {
@@ -219,6 +219,38 @@ async function fetchGitHubContent(owner: string, repo: string): Promise<string> 
             }
           } catch { /* skip */ }
         }
+      }
+
+      // Deep analysis: fetch src/ or lib/ directory structure
+      const srcDirs = files.filter(f => f.type === 'dir' && ['src', 'lib', 'app', 'pkg', 'cmd'].includes(f.name));
+      for (const dir of srcDirs.slice(0, 2)) {
+        try {
+          const srcRes = await fetchGitHub(`/repos/${owner}/${repo}/contents/${dir.name}`);
+          if (srcRes.ok) {
+            const srcFiles: Array<{ name: string; type: string; size: number }> = await srcRes.json();
+            sections.push(`## ${dir.name}/ Directory Structure\n`);
+            sections.push(srcFiles.slice(0, 30).map(f => `${f.type === 'dir' ? '📁' : '📄'} ${dir.name}/${f.name}`).join('\n'));
+            sections.push('');
+
+            // Fetch index/main entry files for deeper understanding
+            const entryFiles = srcFiles.filter(f =>
+              f.type === 'file' && f.size < 20000 &&
+              /^(index|main|app|mod|lib)\.(ts|tsx|js|jsx|py|rs|go)$/.test(f.name)
+            );
+            for (const entry of entryFiles.slice(0, 2)) {
+              try {
+                const entryRes = await fetchGitHub(`/repos/${owner}/${repo}/contents/${dir.name}/${entry.name}`);
+                if (entryRes.ok) {
+                  const entryData = await entryRes.json();
+                  if (entryData.content) {
+                    const content = atob(entryData.content.replace(/\n/g, ''));
+                    sections.push(`## ${dir.name}/${entry.name}\n\`\`\`\n${content.substring(0, 3000)}\n\`\`\`\n`);
+                  }
+                }
+              } catch { /* skip */ }
+            }
+          }
+        } catch { /* skip */ }
       }
     }
   } catch { /* skip */ }
