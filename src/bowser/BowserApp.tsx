@@ -7,7 +7,7 @@ import { AiSidePanel } from './components/AiSidePanel';
 import { AgentView } from './components/AgentView';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
-import { Breadcrumb, FormFieldState, TabKind, AgentTask } from './types';
+import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
