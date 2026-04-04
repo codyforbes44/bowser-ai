@@ -1,21 +1,8 @@
 import React from 'react';
-import { getStorageItem, setStorageItem } from '../utils/storage';
+import { setStorageItem } from '../utils/storage';
 import { SearchEngine, SEARCH_ENGINES, getSearchEngine } from '../hooks/useOmnibox';
 import { FontSize, TabLimit, getFontSize, setFontSize, getTabLimit, setTabLimit, setSearchEngineSetting } from '../hooks/useBowserSettings';
-
-export type BowserTheme = 'dark' | 'light' | 'system';
-
-export function getEffectiveTheme(): BowserTheme {
-  return getStorageItem<BowserTheme>('theme', 'dark');
-}
-
-export function applyBowserTheme(theme: BowserTheme) {
-  const root = document.documentElement;
-  const effective = theme === 'system'
-    ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-    : theme;
-  root.setAttribute('data-bowser-theme', effective);
-}
+import { BowserTheme, getEffectiveTheme, applyBowserTheme } from '../utils/theme';
 
 const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
 const mod = isMac ? '⌘' : 'Ctrl';

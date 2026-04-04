@@ -5,7 +5,7 @@ import { NewTab } from './components/NewTab';
 import { CommandPalette } from './components/CommandPalette';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
+import { applyBowserTheme, getEffectiveTheme } from './utils/theme';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
@@ -122,14 +122,12 @@ const BowserApp: React.FC = () => {
       return;
     }
     if (activeTab.currentIndex > 0) {
-      const prevPage = activeTab.history[activeTab.currentIndex - 1];
       updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex - 1;
         const page = tab.history[newIndex];
         if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      
     }
   }, [activeTab, updateTabById]);
 
@@ -146,14 +144,12 @@ const BowserApp: React.FC = () => {
       return;
     }
     if (activeTab.currentIndex < activeTab.history.length - 1) {
-      const nextPage = activeTab.history[activeTab.currentIndex + 1];
       updateTabById(activeTab.id, tab => {
         const newIndex = tab.currentIndex + 1;
         const page = tab.history[newIndex];
         if (!page) return tab;
         return { ...tab, currentIndex: newIndex, navigationId: tab.navigationId + 1, generatedContent: page.html, breadcrumb: page.breadcrumb, tokenCount: page.tokenCount, groundingSources: page.groundingSources || [], searchEntryPointHtml: page.searchEntryPointHtml || '' };
       });
-      
     }
   }, [activeTab, updateTabById]);
 
