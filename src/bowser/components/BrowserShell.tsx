@@ -149,6 +149,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   const [renameValue, setRenameValue] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [contextMenu, setContextMenu] = useState<{ tab: Tab; tabIndex: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
