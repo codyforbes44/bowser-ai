@@ -40,25 +40,8 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
           setLoading(false);
           return;
         }
-        // Detect bot-challenge pages
-        const botPhrases = [
-          'automated process',
-          'unusual traffic',
-          'are you a robot',
-          'captcha',
-          'verify you are human',
-          'access denied',
-          'please verify',
-          'bot detection',
-          'challenge-platform',
-          'cf-browser-verification',
-          'just a moment',
-          'checking your browser',
-          'ray id',
-        ];
-        const lowerHtml = (data.html || '').toLowerCase();
-        const isBotBlocked = botPhrases.some(phrase => lowerHtml.includes(phrase));
-        if (isBotBlocked) {
+        // Server-side bot detection flag
+        if (data.blocked) {
           setError('blocked');
           setLoading(false);
           return;
