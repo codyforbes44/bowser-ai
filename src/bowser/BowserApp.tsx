@@ -35,7 +35,7 @@ const BowserApp: React.FC = () => {
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
 
   const {
-    tabs, activeTabIndex, safeIndex, activeTab, currentPage,
+    tabs, setTabs, activeTabIndex, setActiveTabIndex, safeIndex, activeTab, currentPage,
     updateTabById, handleNewTab, handleCloseTab, handleSwitchTab,
     handleRenameTab, handlePinTab, handleReopenClosedTab, navigateToSystemPage, handleReorderTabs,
   } = useTabManager();
