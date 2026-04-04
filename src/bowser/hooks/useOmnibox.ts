@@ -89,7 +89,7 @@ export function useOmnibox(deps: {
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: decision.kind, page: '' },
     }));
-  }, [activeTab, currentPage, updateTabById, generate, addHistoryEntry]);
+  }, [activeTab, currentPage, updateTabById, generate, addHistoryEntry, executeAgent]);
 
   return { handleOmnibarNavigate };
 }
