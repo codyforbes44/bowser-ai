@@ -503,47 +503,21 @@ export const AddressBar: React.FC<AddressBarProps> = ({
               <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
             </button>
           )}
-          <div className="menu-container" ref={menuRef}>
-            <button className="nav-btn nav-btn-mobile" onClick={() => setMenuOpen(!menuOpen)} aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
-              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
-            {menuOpen && (
-              <div className="dropdown-menu dropdown-menu-mobile" role="menu">
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onBack(); setMenuOpen(false); }} disabled={!canGoBack}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-                  <span className="text-[13px]">Back</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onForward(); setMenuOpen(false); }} disabled={!canGoForward}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_forward</span>
-                  <span className="text-[13px]">Forward</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { isLoading ? onStop() : onRefresh(); setMenuOpen(false); }}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">{isLoading ? 'close' : 'refresh'}</span>
-                  <span className="text-[13px]">{isLoading ? 'Stop' : 'Reload'}</span>
-                </button>
-                <button className="dropdown-menu-item" role="menuitem" onClick={() => { onHome(); setMenuOpen(false); }}>
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">home</span>
-                  <span className="text-[13px]">New tab</span>
-                </button>
-                <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
-                <label className="dropdown-menu-item" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[13px]">
-                    {isBrowserMode ? 'Web mode' : 'Create mode'}
-                  </span>
-                  <div
-                    className={`toggle-track ${!isBrowserMode ? 'active' : ''}`}
-                    onClick={onToggleBrowserMode}
-                    role="switch"
-                    aria-checked={!isBrowserMode}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleBrowserMode(); } }}
-                  >
-                    <div className="toggle-thumb" />
-                  </div>
-                </label>
-              </div>
-            )}
-          </div>
+          <MobileMenuPortal
+            menuRef={menuRef}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+            onBack={onBack}
+            onForward={onForward}
+            onRefresh={onRefresh}
+            onStop={onStop}
+            onHome={onHome}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            isLoading={isLoading}
+            isBrowserMode={isBrowserMode}
+            onToggleBrowserMode={onToggleBrowserMode}
+          />
         </div>
       ) : (
         <>
