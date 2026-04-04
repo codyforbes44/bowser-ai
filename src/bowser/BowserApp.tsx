@@ -307,8 +307,12 @@ const BowserApp: React.FC = () => {
     { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
     { id: 'toggle-mode', label: 'Toggle Create / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
-    
-  ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate]);
+    { id: 'agent-mode', label: 'Start Agent Task', icon: 'smart_toy', section: 'Actions', onExecute: () => {
+      if (!activeTab) return;
+      updateTabById(activeTab.id, t => ({ ...t, tabKind: 'agent', browserUrl: undefined }));
+      window.dispatchEvent(new Event('bowser:focus-omnibar'));
+    }},
+  ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate, updateTabById]);
 
   const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
   const displayContent = activeTab?.loading ? activeTab.generatedContent : (currentPage?.html || '');
