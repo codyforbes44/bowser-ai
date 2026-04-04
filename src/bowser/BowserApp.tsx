@@ -313,7 +313,7 @@ const BowserApp: React.FC = () => {
     }},
   ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate, updateTabById]);
 
-  const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
+  const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web' && activeTab?.tabKind !== 'agent');
   const displayContent = activeTab?.loading ? activeTab.generatedContent : (currentPage?.html || '');
   const sidePanelHtml = activeTab?.tabKind === 'ai' && currentPage ? currentPage.html : null;
 
