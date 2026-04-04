@@ -148,13 +148,19 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       if (e.key === 'Escape') setMenuOpen(false);
     };
     const handleBlur = () => setMenuOpen(false);
+    const handleScroll = () => setMenuOpen(false);
+    const handleResize = () => setMenuOpen(false);
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleEscape);
     window.addEventListener('blur', handleBlur);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
     return () => {
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleEscape);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
     };
   }, [menuOpen]);
 
