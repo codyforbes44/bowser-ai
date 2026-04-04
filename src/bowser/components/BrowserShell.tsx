@@ -447,6 +447,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           webHistoryTotal={webHistoryTotal}
           webHistoryUrls={webHistoryUrls}
           onWebHistoryNavigate={onWebHistoryNavigate}
+          onOpenSettings={onOpenSettings}
+          onOpenHistory={onOpenHistory}
+          onOpenBookmarks={onOpenBookmarks}
         />
       )}
 
