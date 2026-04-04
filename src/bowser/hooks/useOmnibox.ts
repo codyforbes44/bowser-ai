@@ -32,6 +32,14 @@ export function useOmnibox(deps: {
   const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
     if (!activeTab) return;
     const tab = activeTab;
+
+    // If in agent mode, route directly to agent execution (with prefix validation)
+    if (tab.tabKind === 'agent' && executeAgent) {
+      executeAgent(prompt, tab.id);
+      addHistoryEntry({ url: prompt, title: prompt, tabKind: 'agent' });
+      return;
+    }
+
     const decision = parseOmniboxInput(prompt, tab.tabKind);
 
     if (decision.error) return;
@@ -81,7 +89,7 @@ export function useOmnibox(deps: {
       currentIndex: -1, history: [], loading: false, generatedContent: '',
       breadcrumb: { sitename: decision.kind, page: '' },
     }));
-  }, [activeTab, currentPage, updateTabById, generate, addHistoryEntry]);
+  }, [activeTab, currentPage, updateTabById, generate, addHistoryEntry, executeAgent]);
 
   return { handleOmnibarNavigate };
 }
