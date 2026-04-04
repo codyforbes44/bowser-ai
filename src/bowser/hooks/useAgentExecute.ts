@@ -95,7 +95,44 @@ export function useAgentExecute(deps: {
     });
   }, [updateTabById]);
 
+  const AGENT_PREFIX = 'Build it Bowser:';
+
   const executeAgent = useCallback(async (goal: string, tabId: string) => {
+    // Strict command validation: must start with "Build it Bowser:"
+    if (!goal.startsWith(AGENT_PREFIX)) {
+      const rejectionHtml = `<html><head><meta name="color-scheme" content="dark"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0f;color:#e8eaed;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}.card{max-width:480px;width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px;text-align:center;backdrop-filter:blur(20px)}.icon{font-size:48px;margin-bottom:16px;opacity:0.7}h1{font-size:18px;font-weight:600;margin-bottom:12px;color:#fff}p{font-size:14px;line-height:1.6;color:#9aa0a6;margin-bottom:20px}code{background:rgba(138,180,248,0.12);color:#8ab4f8;padding:4px 10px;border-radius:8px;font-size:13px;font-family:'SF Mono',monospace;display:inline-block;margin-top:4px}</style></head><body><div class="card"><div class="icon">🐢</div><h1>Command Prefix Required</h1><p>To trigger an autonomous build, please start your message with:</p><code>Build it Bowser: your goal here</code></div></body></html>`;
+      updateTabById(tabId, tab => ({
+        ...tab,
+        tabKind: 'agent',
+        loading: false,
+        loadingMessage: '',
+        generatedContent: rejectionHtml,
+        agentTask: {
+          goal,
+          steps: [],
+          status: 'error',
+          finalHtml: rejectionHtml,
+          pinnedInsights: [],
+          preconnectDomains: [],
+        },
+      }));
+      return;
+    }
+
+    // Strip the prefix for the actual goal
+    const cleanGoal = goal.slice(AGENT_PREFIX.length).trim();
+    if (!cleanGoal) {
+      const emptyHtml = `<html><head><meta name="color-scheme" content="dark"><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0f;color:#e8eaed;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}.card{max-width:480px;width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px;text-align:center}h1{font-size:18px;margin-bottom:12px}p{font-size:14px;color:#9aa0a6}</style></head><body><div class="card"><div style="font-size:48px;margin-bottom:16px">🐢</div><h1>Empty Goal</h1><p>Please provide a goal after "Build it Bowser:"</p></div></body></html>`;
+      updateTabById(tabId, tab => ({
+        ...tab,
+        tabKind: 'agent',
+        loading: false,
+        generatedContent: emptyHtml,
+        agentTask: { goal, steps: [], status: 'error', finalHtml: emptyHtml, pinnedInsights: [], preconnectDomains: [] },
+      }));
+      return;
+    }
+
     const existing = abortControllersRef.current.get(tabId);
     if (existing) existing.abort();
     const controller = new AbortController();
