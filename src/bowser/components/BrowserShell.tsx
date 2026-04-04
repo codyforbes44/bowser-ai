@@ -512,6 +512,22 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           {mobileTabBar}
         </div>
       )}
+
+      {/* Tab context menu */}
+      {contextMenu && onDuplicateTab && onCloseOtherTabs && onPinTab && (
+        <TabContextMenu
+          tab={contextMenu.tab}
+          tabIndex={contextMenu.tabIndex}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onNewTab={onNewTab}
+          onCloseTab={onCloseTab}
+          onCloseOtherTabs={onCloseOtherTabs}
+          onDuplicateTab={onDuplicateTab}
+          onPinTab={onPinTab}
+        />
+      )}
     </div>
   );
 };
