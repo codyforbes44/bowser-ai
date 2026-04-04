@@ -356,6 +356,7 @@ const BowserApp: React.FC = () => {
           });
         } : undefined}
       >
+        <ErrorBoundary fallbackLevel="tab" onReset={handleHome}>
         {isNewTab ? (
           <NewTab
             onCreatePage={(prompt) => {
@@ -438,6 +439,7 @@ const BowserApp: React.FC = () => {
             onAction={handleAction}
           />
         )}
+        </ErrorBoundary>
       </BrowserShell>
       <CommandPalette
         isOpen={commandPaletteOpen}
