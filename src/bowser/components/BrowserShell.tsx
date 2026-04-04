@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { AddressBar } from './AddressBar';
+import { TabContextMenu } from './TabContextMenu';
 import { Breadcrumb, Tab, TokenCount } from '../types';
 
 const AnimatedNumber: React.FC<{ value: number; prefix?: string; prefixVisible?: boolean; animate?: boolean }> = React.memo(({ value, prefix, prefixVisible = true, animate = true }) => {
