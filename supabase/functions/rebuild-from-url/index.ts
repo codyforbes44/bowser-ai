@@ -233,17 +233,90 @@ async function fetchGitHubContent(owner: string, repo: string): Promise<string> 
 // --- Web page helpers ---
 
 function extractContent(html: string): string {
+  const sections: string[] = [];
+
+  // Extract Open Graph metadata
+  const ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  const ogDesc = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  const ogImage = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  const metaDesc = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)?.[1];
+  const pageTitle = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1];
+
+  if (ogTitle || pageTitle) sections.push(`Title: ${ogTitle || pageTitle}`);
+  if (ogDesc || metaDesc) sections.push(`Description: ${ogDesc || metaDesc}`);
+  if (ogImage) sections.push(`Hero Image: ${ogImage}`);
+  sections.push('');
+
+  // Strip non-content elements
   let content = html;
   content = content.replace(/<script[\s\S]*?<\/script>/gi, '');
   content = content.replace(/<style[\s\S]*?<\/style>/gi, '');
   content = content.replace(/<!--[\s\S]*?-->/g, '');
-  content = content.replace(/<svg[\s\S]*?<\/svg>/gi, '[SVG icon]');
+  content = content.replace(/<svg[\s\S]*?<\/svg>/gi, '[SVG]');
   content = content.replace(/<noscript[\s\S]*?<\/noscript>/gi, '');
-  content = content.replace(/\s+/g, ' ').trim();
-  if (content.length > 30000) {
-    content = content.substring(0, 30000) + '\n[...content truncated...]';
+
+  // Try to extract main content (Readability-style heuristic)
+  const mainMatch = content.match(/<main[\s\S]*?<\/main>/i)
+    || content.match(/<article[\s\S]*?<\/article>/i)
+    || content.match(/<div[^>]*(?:id|class)=["'][^"']*(?:content|main|article|post|entry)[^"']*["'][\s\S]*?<\/div>/i);
+
+  if (mainMatch) {
+    content = mainMatch[0];
   }
-  return content;
+
+  // Extract headings with hierarchy
+  const headings = [...content.matchAll(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi)];
+  if (headings.length > 0) {
+    sections.push('## Page Structure');
+    headings.forEach(m => {
+      const level = parseInt(m[1][1]);
+      const text = m[2].replace(/<[^>]+>/g, '').trim();
+      if (text) sections.push(`${'#'.repeat(level)} ${text}`);
+    });
+    sections.push('');
+  }
+
+  // Extract navigation links
+  const navMatch = content.match(/<nav[\s\S]*?<\/nav>/i);
+  if (navMatch) {
+    const navLinks = [...navMatch[0].matchAll(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+    if (navLinks.length > 0) {
+      sections.push('## Navigation');
+      navLinks.forEach(m => {
+        const text = m[2].replace(/<[^>]+>/g, '').trim();
+        if (text) sections.push(`- [${text}](${m[1]})`);
+      });
+      sections.push('');
+    }
+  }
+
+  // Extract images with alt text
+  const images = [...content.matchAll(/<img[^>]*alt=["']([^"']+)["'][^>]*>/gi)];
+  if (images.length > 0) {
+    sections.push('## Images');
+    images.slice(0, 20).forEach(m => sections.push(`- Image: ${m[1]}`));
+    sections.push('');
+  }
+
+  // Clean remaining content to text
+  const textContent = content
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  sections.push('## Full Text Content\n');
+  sections.push(textContent);
+
+  let result = sections.join('\n');
+  if (result.length > 30000) {
+    result = result.substring(0, 30000) + '\n[...content truncated...]';
+  }
+  return result;
 }
 
 async function fetchWebPage(url: string): Promise<string> {
