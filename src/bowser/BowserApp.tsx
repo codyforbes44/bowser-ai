@@ -5,7 +5,7 @@ import { NewTab } from './components/NewTab';
 import { CommandPalette } from './components/CommandPalette';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
+import { applyBowserTheme, getEffectiveTheme } from './utils/theme';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
