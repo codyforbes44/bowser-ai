@@ -114,12 +114,15 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
     if (question.trim()) runAction('ask', question.trim());
   };
 
+  const panelRef = useRef<HTMLElement>(null);
+  useFocusTrap(panelRef, isOpen);
+
   if (!isOpen) return null;
 
   const actions = isWebTab ? WEB_TAB_ACTIONS : AI_TAB_ACTIONS;
 
   return (
-    <aside className="side-panel" role="complementary" aria-label="Assistant">
+    <aside ref={panelRef} className="side-panel" role="complementary" aria-label="Assistant">
       {/* Header */}
       <div className="side-panel-header">
         <div className="flex items-center gap-2">
