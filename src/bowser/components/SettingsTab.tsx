@@ -180,7 +180,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
             <SectionBlock key={section.title} icon={section.icon} title={section.title}>
               {section.items.map(item => (
                 <SettingsRow key={item.key} label={item.label} description={item.description}>
-                  <SegmentedButtons options={item.options} value={item.get()} onChange={item.set} />
+                  {item.type === 'dropdown' ? (
+                    <DropdownSelect options={item.options} value={item.get()} onChange={item.set} />
+                  ) : (
+                    <SegmentedButtons options={item.options} value={item.get()} onChange={item.set} />
+                  )}
                 </SettingsRow>
               ))}
             </SectionBlock>
