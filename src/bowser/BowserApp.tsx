@@ -3,8 +3,8 @@ import { BrowserShell } from './components/BrowserShell';
 import { Sandbox } from './components/Sandbox';
 import { NewTab } from './components/NewTab';
 import { CommandPalette } from './components/CommandPalette';
-import { AiSidePanel } from './components/AiSidePanel';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
 import { Breadcrumb, FormFieldState, TabKind } from './types';
 import { WebProxy } from './components/WebProxy';
@@ -20,6 +20,7 @@ import { useSwipeGesture } from './hooks/useSwipeGesture';
 const HistoryTab = lazy(() => import('./components/HistoryTab').then(m => ({ default: m.HistoryTab })));
 const BookmarksTab = lazy(() => import('./components/BookmarksTab').then(m => ({ default: m.BookmarksTab })));
 const SettingsTab = lazy(() => import('./components/SettingsTab').then(m => ({ default: m.SettingsTab })));
+const AiSidePanel = lazy(() => import('./components/AiSidePanel').then(m => ({ default: m.AiSidePanel })));
 
 const BowserApp: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -233,6 +234,13 @@ const BowserApp: React.FC = () => {
     }
   }, [activeTab, updateTabById, generate]);
 
+  // Go-home event from WebProxy 404 page
+  useEffect(() => {
+    const handler = () => handleHome();
+    window.addEventListener('bowser:go-home', handler);
+    return () => window.removeEventListener('bowser:go-home', handler);
+  }, [handleHome]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -332,14 +340,16 @@ const BowserApp: React.FC = () => {
         sidePanelOpen={sidePanelOpen}
         onToggleSidePanel={() => setSidePanelOpen(prev => !prev)}
         sidePanel={
-          <AiSidePanel
-            isOpen={sidePanelOpen}
-            onClose={() => setSidePanelOpen(false)}
-            pageHtml={sidePanelHtml}
-            tabKind={activeTab.tabKind}
-            webTabUrl={activeTab.tabKind === 'web' ? activeTab.browserUrl : undefined}
-            webTabTitle={activeTab.tabKind === 'web' ? activeTab.breadcrumb.sitename : undefined}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <AiSidePanel
+              isOpen={sidePanelOpen}
+              onClose={() => setSidePanelOpen(false)}
+              pageHtml={sidePanelHtml}
+              tabKind={activeTab.tabKind}
+              webTabUrl={activeTab.tabKind === 'web' ? activeTab.browserUrl : undefined}
+              webTabTitle={activeTab.tabKind === 'web' ? activeTab.breadcrumb.sitename : undefined}
+            />
+          </Suspense>
         }
         viewportRef={viewportRef}
         webHistoryPosition={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistoryIndex + 1 : undefined}
@@ -353,6 +363,7 @@ const BowserApp: React.FC = () => {
           });
         } : undefined}
       >
+        <ErrorBoundary fallbackLevel="tab" onReset={handleHome}>
         {isNewTab ? (
           <NewTab
             onCreatePage={(prompt) => {
@@ -435,6 +446,7 @@ const BowserApp: React.FC = () => {
             onAction={handleAction}
           />
         )}
+        </ErrorBoundary>
       </BrowserShell>
       <CommandPalette
         isOpen={commandPaletteOpen}
