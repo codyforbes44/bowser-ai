@@ -30,6 +30,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   isOpen, onClose, pageHtml, tabKind, webTabUrl, webTabTitle,
 }) => {
   const [question, setQuestion] = useState('');
+  const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
 
@@ -45,6 +46,7 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   });
 
   const isLoading = state.status === 'loading' || state.status === 'streaming';
+  const isDone = state.status === 'done' && !!state.content;
 
   // Abort on close
   useEffect(() => { if (!isOpen) abort(); }, [isOpen, abort]);
@@ -75,7 +77,17 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   const handleNewConversation = useCallback(() => {
     reset();
     setQuestion('');
+    setCopied(false);
   }, [reset]);
+
+  const handleCopy = useCallback(() => {
+    if (state.content) {
+      navigator.clipboard.writeText(state.content).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  }, [state.content]);
 
   const handleAsk = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +97,9 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
   if (!isOpen) return null;
 
   const actions = isWebTab ? WEB_TAB_ACTIONS : AI_TAB_ACTIONS;
+
+  // Context display
+  const contextTitle = isWebTab ? (webTabTitle || webTabUrl || '') : 'Generated page';
 
   return (
     <aside className="side-panel" role="complementary" aria-label="Assistant" ref={panelRef}>
@@ -105,6 +120,14 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Context bar */}
+      {canAnalyze && !isSystemTab && (
+        <div className="px-3 py-1.5 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--bw-text-quaternary)', borderBottom: '1px solid var(--bw-border-subtle)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">{isWebTab ? 'public' : 'auto_awesome'}</span>
+          <span className="truncate">{contextTitle}</span>
+        </div>
+      )}
 
       {/* Body */}
       {isSystemTab || !canAnalyze ? (
@@ -149,12 +172,28 @@ export const AiSidePanel: React.FC<AiSidePanelProps> = ({
                 </div>
               )}
               <div className={`side-panel-text ${state.status === 'streaming' ? 'streaming-cursor' : ''}`}>{state.content}</div>
-              {isLoading && state.content && (
-                <button onClick={abort} className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Stop generating">
-                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">stop</span>
-                  Stop
-                </button>
-              )}
+              
+              {/* Action buttons after streaming */}
+              <div className="flex items-center gap-2 mt-3">
+                {isLoading && state.content && (
+                  <button onClick={abort} className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="Stop generating">
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">stop</span>
+                    Stop
+                  </button>
+                )}
+                {isDone && (
+                  <>
+                    <button onClick={handleCopy} className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: copied ? 'var(--bw-green)' : 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'all 0.1s ease' }} onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'var(--bw-text-primary)'; }} onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'var(--bw-text-quaternary)'; }} aria-label="Copy result">
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">{copied ? 'check' : 'content_copy'}</span>
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                    <button onClick={handleNewConversation} className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium" style={{ color: 'var(--bw-text-quaternary)', border: '1px solid var(--bw-border)', transition: 'color 0.1s ease' }} onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-text-primary)')} onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')} aria-label="New question">
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">add</span>
+                      New Question
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             <div className="side-panel-hint">

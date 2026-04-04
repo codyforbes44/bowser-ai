@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { AddressBar } from './AddressBar';
+import { TabContextMenu } from './TabContextMenu';
 import { Breadcrumb, Tab, TokenCount } from '../types';
 
 const AnimatedNumber: React.FC<{ value: number; prefix?: string; prefixVisible?: boolean; animate?: boolean }> = React.memo(({ value, prefix, prefixVisible = true, animate = true }) => {
@@ -96,6 +97,10 @@ interface BrowserShellProps {
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
   onWebHistoryNavigate?: (index: number) => void;
+  onDuplicateTab?: (tab: Tab) => void;
+  onCloseOtherTabs?: (index: number) => void;
+  onShare?: () => void;
+  onDownload?: () => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
@@ -133,6 +138,10 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   webHistoryTotal,
   webHistoryUrls,
   onWebHistoryNavigate,
+  onDuplicateTab,
+  onCloseOtherTabs,
+  onShare,
+  onDownload,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -140,6 +149,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   const [renameValue, setRenameValue] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [contextMenu, setContextMenu] = useState<{ tab: Tab; tabIndex: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
@@ -286,7 +296,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         }}
         onContextMenu={e => {
           e.preventDefault();
-          if (onPinTab) onPinTab(tab.id);
+          setContextMenu({ tab, tabIndex: index, x: e.clientX, y: e.clientY });
         }}
         style={dragOverIndex === index ? { borderLeft: '2px solid var(--bw-accent)' } : undefined}
       >
@@ -366,6 +376,17 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             <span className="token-label"><ElapsedTimer isActive={isLoading} /></span>
           </span>
         </div>
+      )}
+
+      {onShare && (
+        <button className="tab-bar-btn" onClick={onShare} title="Copy page URL" aria-label="Share page">
+          <span className="material-symbols-outlined" aria-hidden="true">share</span>
+        </button>
+      )}
+      {onDownload && (
+        <button className="tab-bar-btn" onClick={onDownload} title="Download HTML" aria-label="Download page">
+          <span className="material-symbols-outlined" aria-hidden="true">download</span>
+        </button>
       )}
 
       {onToggleSidePanel && (
@@ -490,6 +511,22 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           />
           {mobileTabBar}
         </div>
+      )}
+
+      {/* Tab context menu */}
+      {contextMenu && onDuplicateTab && onCloseOtherTabs && onPinTab && (
+        <TabContextMenu
+          tab={contextMenu.tab}
+          tabIndex={contextMenu.tabIndex}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onNewTab={onNewTab}
+          onCloseTab={onCloseTab}
+          onCloseOtherTabs={onCloseOtherTabs}
+          onDuplicateTab={onDuplicateTab}
+          onPinTab={onPinTab}
+        />
       )}
     </div>
   );

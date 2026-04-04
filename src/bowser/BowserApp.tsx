@@ -5,8 +5,10 @@ import { NewTab } from './components/NewTab';
 import { CommandPalette } from './components/CommandPalette';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ShortcutsOverlay } from './components/ShortcutsOverlay';
+import { ProgressBar } from './components/ProgressBar';
 import { applyBowserTheme, getEffectiveTheme } from './utils/theme';
-import { Breadcrumb, FormFieldState, TabKind } from './types';
+import { Breadcrumb, FormFieldState, TabKind, Tab, createTab } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
@@ -26,13 +28,14 @@ const BowserApp: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const { bookmarks, bookmarkFolders, toggleBookmark, isBookmarked, createFolder, renameFolder, deleteFolder, moveBookmark, removeBookmark } = useBookmarks();
   const { history, addHistoryEntry, clearHistory, removeHistoryEntry } = useHistory();
 
   const {
-    tabs, activeTabIndex, safeIndex, activeTab, currentPage,
+    tabs, setTabs, activeTabIndex, setActiveTabIndex, safeIndex, activeTab, currentPage,
     updateTabById, handleNewTab, handleCloseTab, handleSwitchTab,
     handleRenameTab, handlePinTab, handleReopenClosedTab, navigateToSystemPage, handleReorderTabs,
   } = useTabManager();
@@ -237,24 +240,78 @@ const BowserApp: React.FC = () => {
     return () => window.removeEventListener('bowser:go-home', handler);
   }, [handleHome]);
 
+  // Share current page as data: URL
+  const handleShare = useCallback(() => {
+    if (!currentPage?.html) return;
+    const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(currentPage.html)}`;
+    navigator.clipboard.writeText(dataUrl).then(() => {
+      // Brief visual feedback via document title
+      const orig = document.title;
+      document.title = '✓ Copied!';
+      setTimeout(() => { document.title = orig; }, 1500);
+    });
+  }, [currentPage]);
+
+  // Download current page as .html
+  const handleDownload = useCallback(() => {
+    if (!currentPage?.html) return;
+    const blob = new Blob([currentPage.html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeTab?.breadcrumb.sitename || 'page'}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [currentPage, activeTab]);
+
+  // Duplicate tab
+  const handleDuplicateTab = useCallback((tab: Tab) => {
+    const newTab = createTab(tab.tabKind);
+    newTab.breadcrumb = { ...tab.breadcrumb };
+    newTab.history = [...tab.history];
+    newTab.currentIndex = tab.currentIndex;
+    newTab.generatedContent = tab.generatedContent;
+    newTab.tokenCount = tab.tokenCount;
+    newTab.browserUrl = tab.browserUrl;
+    newTab.webHistory = [...tab.webHistory];
+    newTab.webHistoryIndex = tab.webHistoryIndex;
+    setTabs(prev => [...prev, newTab]);
+  }, [setTabs]);
+
+  // Close other tabs
+  const handleCloseOtherTabs = useCallback((keepIndex: number) => {
+    setTabs(prev => {
+      const kept = prev.filter((t, i) => i === keepIndex || t.pinned);
+      return kept.length > 0 ? kept : [createTab('new-tab')];
+    });
+    setActiveTabIndex(0);
+  }, [setTabs, setActiveTabIndex]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape closes side panel
-      if (e.key === 'Escape' && sidePanelOpen) {
-        setSidePanelOpen(false);
+      // Escape closes side panel or shortcuts
+      if (e.key === 'Escape') {
+        if (shortcutsOpen) { setShortcutsOpen(false); return; }
+        if (sidePanelOpen) { setSidePanelOpen(false); return; }
         return;
       }
 
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
 
-      if (e.key === 'k') {
+      if (e.key === '/') {
+        e.preventDefault();
+        setShortcutsOpen(prev => !prev);
+      } else if (e.key === 'k') {
         e.preventDefault();
         setCommandPaletteOpen(prev => !prev);
       } else if (e.key === 'l') {
         e.preventDefault();
         window.dispatchEvent(new Event('bowser:focus-omnibar'));
+      } else if (e.key === 'A' && e.shiftKey) {
+        e.preventDefault();
+        setSidePanelOpen(prev => !prev);
       } else if (e.key === 't' && !e.shiftKey) {
         e.preventDefault();
         const limit = getTabLimit();
@@ -276,7 +333,7 @@ const BowserApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab, generate, sidePanelOpen]);
+  }, [tabs, activeTabIndex, handleNewTab, handleReopenClosedTab, handleCloseTab, handleSwitchTab, generate, sidePanelOpen, shortcutsOpen]);
 
   const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
   const modLabel = isMac ? '⌘' : 'Ctrl+';
@@ -358,7 +415,12 @@ const BowserApp: React.FC = () => {
             return { ...tab, webHistoryIndex: index, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
           });
         } : undefined}
+        onDuplicateTab={handleDuplicateTab}
+        onCloseOtherTabs={handleCloseOtherTabs}
+        onShare={activeTab.tabKind === 'ai' && currentPage ? handleShare : undefined}
+        onDownload={activeTab.tabKind === 'ai' && currentPage ? handleDownload : undefined}
       >
+        <ProgressBar isLoading={activeTab.loading} />
         <ErrorBoundary fallbackLevel="tab" onReset={handleHome}>
         {isNewTab ? (
           <NewTab
@@ -452,6 +514,10 @@ const BowserApp: React.FC = () => {
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
+      />
+      <ShortcutsOverlay
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
     </>
   );

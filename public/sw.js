@@ -1,7 +1,8 @@
-const CACHE_NAME = 'bowser-shell-v1';
+const CACHE_NAME = 'bowser-shell-v2';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
 ];
@@ -33,6 +34,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else: network-first (fall through)
+  // Navigation requests: network-first with offline fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  // Everything else: network-first
   event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });
