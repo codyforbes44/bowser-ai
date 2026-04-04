@@ -378,6 +378,17 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         </div>
       )}
 
+      {onShare && (
+        <button className="tab-bar-btn" onClick={onShare} title="Copy page URL" aria-label="Share page">
+          <span className="material-symbols-outlined" aria-hidden="true">share</span>
+        </button>
+      )}
+      {onDownload && (
+        <button className="tab-bar-btn" onClick={onDownload} title="Download HTML" aria-label="Download page">
+          <span className="material-symbols-outlined" aria-hidden="true">download</span>
+        </button>
+      )}
+
       {onToggleSidePanel && (
         <button
           className={`tab-bar-btn ${sidePanelOpen ? 'active' : ''}`}
