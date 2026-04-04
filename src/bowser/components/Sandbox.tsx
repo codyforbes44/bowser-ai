@@ -169,8 +169,10 @@ export const Sandbox: React.FC<SandboxProps> = ({ htmlContent, onNavigate, onAct
 
     const headMatch = htmlContent.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
     const fontHrefs: string[] = [];
+    const styleContents: string[] = [];
     if (headMatch) {
-      const linkMatches = headMatch[1].match(/<link[^>]*>/gi);
+      const headContent = headMatch[1];
+      const linkMatches = headContent.match(/<link[^>]*>/gi);
       if (linkMatches) {
         linkMatches.forEach(tag => {
           const hrefMatch = tag.match(/href="([^"]+)"/i) || tag.match(/href='([^']+)'/i);
@@ -179,6 +181,15 @@ export const Sandbox: React.FC<SandboxProps> = ({ htmlContent, onNavigate, onAct
             if (href.startsWith('https://fonts.googleapis.com/')) {
               fontHrefs.push(href);
             }
+          }
+        });
+      }
+      const styleMatches = headContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+      if (styleMatches) {
+        styleMatches.forEach(tag => {
+          const inner = tag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+          if (inner && inner[1].trim()) {
+            styleContents.push(inner[1]);
           }
         });
       }
