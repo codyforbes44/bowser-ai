@@ -31,10 +31,22 @@ interface SegmentedSetting {
   set: (v: string) => void;
 }
 
+interface DropdownSetting {
+  type: 'dropdown';
+  key: string;
+  label: string;
+  description: string;
+  options: { value: string; label: string }[];
+  get: () => string;
+  set: (v: string) => void;
+}
+
+type SettingItem = SegmentedSetting | DropdownSetting;
+
 interface SettingSection {
   icon: string;
   title: string;
-  items: SegmentedSetting[];
+  items: SettingItem[];
 }
 
 const searchEngineOptions = (): { value: string; label: string }[] =>
