@@ -132,6 +132,24 @@ serve(async (req: Request) => {
     }
 
     let html = await response.text();
+
+    // Server-side bot detection: short page + multiple bot-specific phrases
+    const textOnly = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const botPhrases = [
+      'challenge-platform',
+      'cf-browser-verification',
+      'checking your browser',
+      'automated process',
+      'unusual traffic',
+      'are you a robot',
+    ];
+    const matchCount = botPhrases.filter(p => textOnly.toLowerCase().includes(p)).length;
+    if (textOnly.length < 3000 && matchCount >= 2) {
+      return new Response(JSON.stringify({ blocked: true, error: 'blocked' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     html = rewriteUrls(html, response.url || url);
 
     return new Response(JSON.stringify({ html, finalUrl: response.url || url }), {
