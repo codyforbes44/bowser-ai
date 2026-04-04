@@ -4,9 +4,10 @@ import { Sandbox } from './components/Sandbox';
 import { NewTab } from './components/NewTab';
 import { CommandPalette } from './components/CommandPalette';
 import { AiSidePanel } from './components/AiSidePanel';
+import { AgentView } from './components/AgentView';
 import { OnboardingModal, hasSeenOnboarding } from './components/OnboardingModal';
 import { applyBowserTheme, getEffectiveTheme } from './components/SettingsTab';
-import { Breadcrumb, FormFieldState, TabKind } from './types';
+import { Breadcrumb, FormFieldState, TabKind, AgentTask } from './types';
 import { WebProxy } from './components/WebProxy';
 import { siteNameFromPrompt, parsePageFromHref, breadcrumbToDisplay } from './utils/urlHelpers';
 import { useBookmarks } from './store/bookmarks';
@@ -14,6 +15,7 @@ import { useHistory } from './store/history';
 import { useTabManager } from './hooks/useTabManager';
 import { useAIGenerate } from './hooks/useAIGenerate';
 import { useOmnibox } from './hooks/useOmnibox';
+import { useAgentExecute } from './hooks/useAgentExecute';
 import { getTabLimit, applyFontScale, getFontSize } from './hooks/useBowserSettings';
 import { useSwipeGesture } from './hooks/useSwipeGesture';
 
@@ -40,13 +42,33 @@ const BowserApp: React.FC = () => {
     activeTab, updateTabById,
   });
 
+  const { executeAgent, cancelAgent } = useAgentExecute({ updateTabById });
+  const [agentTasks, setAgentTasks] = useState<Map<string, AgentTask>>(new Map());
+
   const { handleOmnibarNavigate } = useOmnibox({
     activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry,
+    executeAgent,
   });
 
   useEffect(() => {
     applyBowserTheme(getEffectiveTheme());
     applyFontScale(getFontSize());
+
+    // Handle PWA share target & shortcuts
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const shareUrl = params.get('url');
+    const shareText = params.get('text');
+    const shareTitle = params.get('title');
+
+    if (action === 'share' && (shareUrl || shareText)) {
+      const input = shareUrl || shareText || shareTitle || '';
+      if (input) {
+        setTimeout(() => handleOmnibarNavigate('create', input), 500);
+      }
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
   }, []);
 
   // Auto-fullscreen on first user interaction
@@ -79,6 +101,9 @@ const BowserApp: React.FC = () => {
     },
     onSwipeRight: () => {
       if (safeIndex > 0) handleSwitchTab(safeIndex - 1);
+    },
+    onPullDown: () => {
+      handleRefresh();
     },
     enabled: window.innerWidth < 768,
   });
@@ -282,8 +307,12 @@ const BowserApp: React.FC = () => {
     { id: 'open-settings', label: 'Settings', icon: 'settings', section: 'Navigation', onExecute: () => navigateToSystemPage('settings') },
     { id: 'toggle-panel', label: sidePanelOpen ? 'Close Side Panel' : 'Open Side Panel', icon: 'right_panel_open', section: 'Actions', onExecute: () => setSidePanelOpen(prev => !prev) },
     { id: 'toggle-mode', label: 'Toggle Create / Web Mode', icon: 'swap_horiz', section: 'Actions', onExecute: handleToggleBrowserMode },
-    
-  ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate]);
+    { id: 'agent-mode', label: 'Start Agent Task', icon: 'smart_toy', section: 'Actions', onExecute: () => {
+      if (!activeTab) return;
+      updateTabById(activeTab.id, t => ({ ...t, tabKind: 'agent', browserUrl: undefined }));
+      window.dispatchEvent(new Event('bowser:focus-omnibar'));
+    }},
+  ], [modLabel, handleNewTab, handleReopenClosedTab, tabs.length, activeTabIndex, handleCloseTab, activeTab, handlePinTab, sidePanelOpen, handleToggleBrowserMode, navigateToSystemPage, generate, updateTabById]);
 
   const isNewTab = activeTab?.tabKind === 'new-tab' || (activeTab?.currentIndex === -1 && !activeTab?.loading && activeTab?.tabKind !== 'web');
   const displayContent = activeTab?.loading ? activeTab.generatedContent : (currentPage?.html || '');

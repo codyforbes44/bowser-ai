@@ -37,6 +37,29 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         categories: ["productivity", "utilities"],
+        shortcuts: [
+          {
+            name: "New Tab",
+            short_name: "New",
+            url: "/?action=new-tab",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Create Page",
+            short_name: "Create",
+            url: "/?action=create",
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192" }],
+          },
+        ],
+        share_target: {
+          action: "/?action=share",
+          method: "GET",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+          },
+        },
         icons: [
           {
             src: "/pwa-192x192.png",

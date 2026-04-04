@@ -184,6 +184,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
     switch (tab.tabKind) {
       case 'web': return 'public';
       case 'ai': return 'auto_awesome';
+      case 'agent': return 'smart_toy';
       case 'history': return 'history';
       case 'bookmarks': return 'bookmarks';
       case 'settings': return 'settings';
@@ -194,6 +195,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   const getTabAccentClass = (tab: Tab): string => {
     switch (tab.tabKind) {
       case 'ai': return 'tab-accent-ai';
+      case 'agent': return 'tab-accent-ai';
       case 'web': return 'tab-accent-web';
       default: return 'tab-accent-system';
     }

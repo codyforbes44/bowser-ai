@@ -363,6 +363,46 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
                 aria-label="Search or enter a URL"
               />
+              {/* Voice input button */}
+              {'webkitSpeechRecognition' in window || 'SpeechRecognition' in window ? (
+                <button
+                  type="button"
+                  className="absolute right-8 top-1/2 -translate-y-1/2 p-1 rounded flex items-center justify-center transition-colors"
+                  style={{ color: 'var(--bw-text-quaternary)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--bw-accent)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--bw-text-quaternary)')}
+                  title="Voice input"
+                  aria-label="Voice input"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                    if (!SpeechRecognition) return;
+                    const recognition = new SpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.lang = navigator.language || 'en-US';
+                    recognition.onresult = (event: any) => {
+                      const transcript = event.results[0][0].transcript;
+                      if (transcript) {
+                        setInputVal(transcript);
+                        setHasEdited(true);
+                        // Auto-submit after voice recognition
+                        setTimeout(() => {
+                          const success = navigateWithQuery(transcript);
+                          if (success) {
+                            setHasEdited(false);
+                            inputRef.current?.blur();
+                          }
+                        }, 300);
+                      }
+                    };
+                    recognition.onerror = () => { /* silently fail */ };
+                    recognition.start();
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">mic</span>
+                </button>
+              ) : null}
               <button
                 type="submit"
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded flex items-center justify-center transition-colors"

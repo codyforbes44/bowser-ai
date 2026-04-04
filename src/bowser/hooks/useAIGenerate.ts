@@ -4,6 +4,28 @@ import { streamPageGeneration, streamPageRebuild } from '../services/geminiServi
 import { extractTitleFromHtml, siteNameFromPrompt } from '../utils/urlHelpers';
 import { addRecentPrompt } from '../store/session';
 
+interface ConversationEntry {
+  prompt: string;
+  summary: string;
+}
+
+// Per-tab conversation context (rolling window of last 5 interactions)
+const tabConversationContext = new Map<string, ConversationEntry[]>();
+
+function addConversationEntry(tabId: string, prompt: string, html: string) {
+  const entries = tabConversationContext.get(tabId) || [];
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+  const summary = titleMatch ? titleMatch[1] : prompt.slice(0, 100);
+  entries.push({ prompt, summary });
+  // Keep only last 5
+  if (entries.length > 5) entries.splice(0, entries.length - 5);
+  tabConversationContext.set(tabId, entries);
+}
+
+function getConversationContext(tabId: string): ConversationEntry[] {
+  return tabConversationContext.get(tabId) || [];
+}
+
 export function useAIGenerate(deps: {
   activeTab: Tab | undefined;
   updateTabById: (id: string, updater: (t: Tab) => Tab) => void;
@@ -44,7 +66,8 @@ export function useAIGenerate(deps: {
     let titleExtracted = false;
 
     try {
-      const stream = streamPageGeneration(prompt, currentHtml, controller.signal, formState, window.innerWidth <= 768);
+      const conversationHistory = getConversationContext(tabId);
+      const stream = streamPageGeneration(prompt, currentHtml, controller.signal, formState, window.innerWidth <= 768, conversationHistory);
 
       for await (const chunk of stream) {
         if (controller.signal.aborted) break;
@@ -110,6 +133,9 @@ export function useAIGenerate(deps: {
           return { ...tab, history: updated, breadcrumb: finalBreadcrumb, tokenCount: pageTokenCount };
         }
       });
+
+      // Track conversation context for this tab
+      addConversationEntry(tabId, prompt, fullHtml);
 
     } catch (e: any) {
       if (e?.name === 'AbortError' || controller.signal.aborted) return;
