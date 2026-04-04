@@ -96,6 +96,9 @@ interface BrowserShellProps {
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
   onWebHistoryNavigate?: (index: number) => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
 }
 
 export const BrowserShell: React.FC<BrowserShellProps> = ({
@@ -133,6 +136,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
   webHistoryTotal,
   webHistoryUrls,
   onWebHistoryNavigate,
+  onOpenSettings,
+  onOpenHistory,
+  onOpenBookmarks,
 }) => {
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -441,6 +447,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
           webHistoryTotal={webHistoryTotal}
           webHistoryUrls={webHistoryUrls}
           onWebHistoryNavigate={onWebHistoryNavigate}
+          onOpenSettings={onOpenSettings}
+          onOpenHistory={onOpenHistory}
+          onOpenBookmarks={onOpenBookmarks}
         />
       )}
 
@@ -489,6 +498,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             webHistoryUrls={webHistoryUrls}
             onWebHistoryNavigate={onWebHistoryNavigate}
             onToggleSidePanel={onToggleSidePanel}
+            onOpenSettings={onOpenSettings}
+            onOpenHistory={onOpenHistory}
+            onOpenBookmarks={onOpenBookmarks}
           />
           {mobileTabBar}
         </div>

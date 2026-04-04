@@ -24,6 +24,9 @@ interface AddressBarProps {
   canBookmark: boolean;
   isMobile?: boolean;
   onToggleSidePanel?: () => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
   webHistoryPosition?: number;
   webHistoryTotal?: number;
   webHistoryUrls?: string[];
@@ -49,6 +52,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   canBookmark,
   isMobile = false,
   onToggleSidePanel,
+  onOpenSettings,
+  onOpenHistory,
+  onOpenBookmarks,
   webHistoryPosition,
   webHistoryTotal,
   webHistoryUrls,
@@ -523,6 +529,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             isLoading={isLoading}
             isBrowserMode={isBrowserMode}
             onToggleBrowserMode={onToggleBrowserMode}
+            onOpenSettings={onOpenSettings}
+            onOpenHistory={onOpenHistory}
+            onOpenBookmarks={onOpenBookmarks}
           />
         </div>
       ) : (
@@ -594,21 +603,21 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 </button>
                 <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'settings' }));
+                  onOpenSettings?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
                   <span className="text-[13px]">Settings</span>
                 </button>
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'history' }));
+                  onOpenHistory?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
                   <span className="text-[13px]">History</span>
                 </button>
                 <button className="dropdown-menu-item" role="menuitem" onClick={() => {
-                  window.dispatchEvent(new CustomEvent('bowser:open-system', { detail: 'bookmarks' }));
+                  onOpenBookmarks?.();
                   setMenuOpen(false);
                 }}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
@@ -641,6 +650,9 @@ interface MobileMenuPortalProps {
   isLoading: boolean;
   isBrowserMode: boolean;
   onToggleBrowserMode: () => void;
+  onOpenSettings?: () => void;
+  onOpenHistory?: () => void;
+  onOpenBookmarks?: () => void;
 }
 
 const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
@@ -648,6 +660,7 @@ const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
   onBack, onForward, onRefresh, onStop, onHome,
   canGoBack, canGoForward, isLoading,
   isBrowserMode, onToggleBrowserMode,
+  onOpenSettings, onOpenHistory, onOpenBookmarks,
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
@@ -738,6 +751,19 @@ const MobileMenuPortal: React.FC<MobileMenuPortalProps> = ({
               <div className="toggle-thumb" />
             </div>
           </label>
+          <div style={{ borderTop: '1px solid var(--bw-border-subtle)', margin: '4px 0' }} />
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenSettings?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">settings</span>
+            <span className="text-[13px]">Settings</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenHistory?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
+            <span className="text-[13px]">History</span>
+          </button>
+          <button className="dropdown-menu-item" role="menuitem" onClick={() => { onOpenBookmarks?.(); setMenuOpen(false); }}>
+            <span className="material-symbols-outlined text-base" aria-hidden="true">bookmarks</span>
+            <span className="text-[13px]">Bookmarks</span>
+          </button>
         </div>,
         document.body
       )}

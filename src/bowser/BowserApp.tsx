@@ -374,6 +374,9 @@ const BowserApp: React.FC = () => {
             return { ...tab, webHistoryIndex: index, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
           });
         } : undefined}
+        onOpenSettings={() => navigateToSystemPage('settings')}
+        onOpenHistory={() => navigateToSystemPage('history')}
+        onOpenBookmarks={() => navigateToSystemPage('bookmarks')}
       >
         {isNewTab ? (
           <NewTab
