@@ -30,7 +30,7 @@ export function useTabManager() {
 
   const handleNewTab = useCallback((tabLimit?: number) => {
     if (tabLimit && tabs.length >= tabLimit) return;
-    const newTab = createTab('new-tab');
+    const newTab = createTab('web');
     setTabs(prev => {
       const next = [...prev, newTab];
       queueMicrotask(() => setActiveTabIndex(next.length - 1));
