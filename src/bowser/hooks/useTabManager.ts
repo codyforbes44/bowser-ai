@@ -6,7 +6,7 @@ import { siteNameFromPrompt } from '../utils/urlHelpers';
 export function useTabManager() {
   const [tabs, setTabs] = useState<Tab[]>(() => {
     const restored = restoreWorkspace();
-    return restored && restored.length > 0 ? restored : [createTab('new-tab')];
+    return restored && restored.length > 0 ? restored : [createTab('web')];
   });
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
@@ -30,7 +30,7 @@ export function useTabManager() {
 
   const handleNewTab = useCallback((tabLimit?: number) => {
     if (tabLimit && tabs.length >= tabLimit) return;
-    const newTab = createTab('new-tab');
+    const newTab = createTab('web');
     setTabs(prev => {
       const next = [...prev, newTab];
       queueMicrotask(() => setActiveTabIndex(next.length - 1));
@@ -45,7 +45,7 @@ export function useTabManager() {
     addRecentlyClosed(closingTab);
 
     if (tabs.length === 1) {
-      const newTab = createTab('new-tab');
+      const newTab = createTab('web');
       setTabs([newTab]);
       setActiveTabIndex(0);
     } else {
@@ -89,7 +89,7 @@ export function useTabManager() {
         return next;
       });
     } else if (closed.tabKind === 'ai' && closed.lastPrompt && generateFn) {
-      const newTab = createTab('new-tab');
+      const newTab = createTab('web');
       setTabs(prev => {
         const next = [...prev, newTab];
         queueMicrotask(() => setActiveTabIndex(next.length - 1));
@@ -102,7 +102,7 @@ export function useTabManager() {
         generateFn(prompt, null, fallback, true, undefined, newTab.id);
       }, 100);
     } else {
-      const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'new-tab';
+      const kind = (['history', 'bookmarks', 'settings'] as TabKind[]).includes(closed.tabKind) ? closed.tabKind : 'web';
       const newTab = createTab(kind);
       newTab.breadcrumb = { sitename: kind, page: '' };
       setTabs(prev => {
