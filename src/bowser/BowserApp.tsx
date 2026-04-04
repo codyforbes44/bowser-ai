@@ -234,6 +234,13 @@ const BowserApp: React.FC = () => {
     }
   }, [activeTab, updateTabById, generate]);
 
+  // Go-home event from WebProxy 404 page
+  useEffect(() => {
+    const handler = () => handleHome();
+    window.addEventListener('bowser:go-home', handler);
+    return () => window.removeEventListener('bowser:go-home', handler);
+  }, [handleHome]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
