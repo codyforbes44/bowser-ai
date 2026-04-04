@@ -23,9 +23,10 @@ export function useOmnibox(deps: {
   currentPage: any;
   updateTabById: (id: string, updater: (t: Tab) => Tab) => void;
   generate: (prompt: string, html: string | null, fallback: Breadcrumb, push: boolean, formState?: any, tabId?: string) => void;
+  rebuild: (url: string, tabId?: string) => void;
   addHistoryEntry: (entry: { url: string; title: string; tabKind: TabKind }) => void;
 }) {
-  const { activeTab, currentPage, updateTabById, generate, addHistoryEntry } = deps;
+  const { activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry } = deps;
 
   const handleOmnibarNavigate = useCallback((_type: 'create' | 'edit', prompt: string) => {
     if (!activeTab) return;
