@@ -333,14 +333,16 @@ const BowserApp: React.FC = () => {
         sidePanelOpen={sidePanelOpen}
         onToggleSidePanel={() => setSidePanelOpen(prev => !prev)}
         sidePanel={
-          <AiSidePanel
-            isOpen={sidePanelOpen}
-            onClose={() => setSidePanelOpen(false)}
-            pageHtml={sidePanelHtml}
-            tabKind={activeTab.tabKind}
-            webTabUrl={activeTab.tabKind === 'web' ? activeTab.browserUrl : undefined}
-            webTabTitle={activeTab.tabKind === 'web' ? activeTab.breadcrumb.sitename : undefined}
-          />
+          <Suspense fallback={<div className="w-full h-full" style={{ background: 'var(--bw-bg-app)' }} />}>
+            <AiSidePanel
+              isOpen={sidePanelOpen}
+              onClose={() => setSidePanelOpen(false)}
+              pageHtml={sidePanelHtml}
+              tabKind={activeTab.tabKind}
+              webTabUrl={activeTab.tabKind === 'web' ? activeTab.browserUrl : undefined}
+              webTabTitle={activeTab.tabKind === 'web' ? activeTab.breadcrumb.sitename : undefined}
+            />
+          </Suspense>
         }
         viewportRef={viewportRef}
         webHistoryPosition={activeTab.tabKind === 'web' && activeTab.webHistory.length > 0 ? activeTab.webHistoryIndex + 1 : undefined}
