@@ -431,6 +431,14 @@ const BowserApp: React.FC = () => {
               onShowOnboarding={() => setShowOnboarding(true)}
             />
           </Suspense>
+        ) : activeTab.tabKind === 'agent' ? (
+          <AgentView
+            task={activeTab.agentTask || null}
+            onCancel={() => cancelAgent(activeTab.id)}
+            onConfirmStep={(confirmed) => confirmStep(activeTab.id, confirmed)}
+            onPinInsight={(text, source) => pinInsight(activeTab.id, text, source)}
+            onUnpinInsight={(id) => unpinInsight(activeTab.id, id)}
+          />
         ) : activeTab.tabKind === 'web' ? (
           <WebProxy
             key={activeTab.navigationId}
