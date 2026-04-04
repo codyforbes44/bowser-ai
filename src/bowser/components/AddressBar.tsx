@@ -551,16 +551,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>Create</span>
           </button>
 
-          <div className="menu-container" ref={menuRef}>
-            <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
-              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
-          {menuOpen && (
-              <div className="dropdown-menu" role="menu">
-                {/* Intentionally empty — live data toggle is in the address bar globe button */}
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>
