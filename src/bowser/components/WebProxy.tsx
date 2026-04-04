@@ -40,12 +40,6 @@ export const WebProxy: React.FC<WebProxyProps> = ({ url, navigationId, onNavigat
           setLoading(false);
           return;
         }
-        // Server-side bot detection flag
-        if (data.blocked) {
-          setError('blocked');
-          setLoading(false);
-          return;
-        }
         setHtml(data.html);
         setLoading(false);
       })
