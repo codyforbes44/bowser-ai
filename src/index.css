@@ -1212,12 +1212,7 @@ body {
   border-color: var(--bw-glass-border);
 }
 
-.dropdown-menu {
-  background: var(--bw-glass-bg);
-  backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(180%);
-  border-color: var(--bw-glass-border);
-}
+/* dropdown-menu glassmorphism is merged into the main .dropdown-menu rule */
 
 /* ==========================================
    AGENT GLOW & ANIMATIONS
