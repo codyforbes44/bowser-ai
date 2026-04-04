@@ -67,6 +67,13 @@ You are powered by Gemini 3 Flash, a state-of-the-art model with real-time web b
    - Heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8Z"/>
    Or use Material Symbols: <span class="material-symbols-outlined">search</span>
 
+   ⚠️ SVG SIZE RULES — CRITICAL:
+   - SVGs are for SMALL ICONS ONLY — max size w-6 h-6 (24px). Every <svg> MUST have explicit Tailwind size classes (e.g. class="w-5 h-5") or width/height attributes.
+   - NEVER use SVGs as hero graphics, decorative illustrations, background art, abstract shapes, logos, or large visual elements.
+   - NEVER create large decorative SVG shapes, arches, blobs, waves, circles, or abstract art as SVG elements.
+   - For decorative/hero visuals, use Unsplash photos via <img> tags or Tailwind gradient backgrounds (bg-gradient-to-r, etc.).
+   - If you need a large visual element, use an <img> with an Unsplash URL — NEVER an inline SVG.
+
 10. BODY — Always include: <body class="antialiased text-gray-900" style="font-family: 'Inter', sans-serif; margin: 0;">
 
 ━━━ END STRICT STYLE RULES ━━━

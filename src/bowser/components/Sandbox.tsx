@@ -110,6 +110,7 @@ const SHELL_HTML = `<!DOCTYPE html>
       body { -webkit-font-smoothing: antialiased; }
       input, textarea, select, button { color: inherit; }
       ::placeholder { opacity: 0.5; }
+      svg:not([class*="w-"]):not([width]) { max-width: 48px; max-height: 48px; }
 
       .material-symbols-outlined,
       .material-symbols-rounded,
