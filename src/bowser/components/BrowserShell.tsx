@@ -296,7 +296,7 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
         }}
         onContextMenu={e => {
           e.preventDefault();
-          if (onPinTab) onPinTab(tab.id);
+          setContextMenu({ tab, tabIndex: index, x: e.clientX, y: e.clientY });
         }}
         style={dragOverIndex === index ? { borderLeft: '2px solid var(--bw-accent)' } : undefined}
       >
