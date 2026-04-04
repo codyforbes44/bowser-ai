@@ -415,7 +415,12 @@ const BowserApp: React.FC = () => {
             return { ...tab, webHistoryIndex: index, browserUrl: url, breadcrumb: { sitename: url, page: '' }, navigationId: tab.navigationId + 1 };
           });
         } : undefined}
+        onDuplicateTab={handleDuplicateTab}
+        onCloseOtherTabs={handleCloseOtherTabs}
+        onShare={activeTab.tabKind === 'ai' && currentPage ? handleShare : undefined}
+        onDownload={activeTab.tabKind === 'ai' && currentPage ? handleDownload : undefined}
       >
+        <ProgressBar isLoading={activeTab.loading} />
         <ErrorBoundary fallbackLevel="tab" onReset={handleHome}>
         {isNewTab ? (
           <NewTab
