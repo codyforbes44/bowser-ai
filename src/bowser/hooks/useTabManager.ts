@@ -6,7 +6,7 @@ import { siteNameFromPrompt } from '../utils/urlHelpers';
 export function useTabManager() {
   const [tabs, setTabs] = useState<Tab[]>(() => {
     const restored = restoreWorkspace();
-    return restored && restored.length > 0 ? restored : [createTab('new-tab')];
+    return restored && restored.length > 0 ? restored : [createTab('web')];
   });
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
