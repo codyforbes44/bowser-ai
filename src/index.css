@@ -1168,32 +1168,3 @@ body {
   .search-widget-iframe { width: 100%; height: 40px; }
   .status-bar { font-size: 11px; padding: 2px 8px; }
 }
-
-/* ==========================================
-   PROGRESS BAR
-   ========================================== */
-
-.progress-bar-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 100;
-  overflow: hidden;
-  background: transparent;
-}
-
-.progress-bar-indicator {
-  height: 100%;
-  width: 30%;
-  background: var(--bw-accent);
-  border-radius: 0 2px 2px 0;
-  animation: progress-slide 1.5s ease-in-out infinite;
-}
-
-@keyframes progress-slide {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(200%); }
-  100% { transform: translateX(400%); }
-}

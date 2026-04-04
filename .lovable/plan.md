@@ -1,42 +1,77 @@
 
 
-# Fix: Missing Stylesheet References in Sandbox Preview
+# Fix Web Mode: Sites Refusing to Load in Iframe
 
 ## Problem
+When users search or navigate to Google, DuckDuckGo, Bing, and many other websites in "Web mode," the iframe shows a blank page or error. This is because these sites set HTTP headers (`X-Frame-Options: DENY` / `Content-Security-Policy: frame-ancestors 'none'`) that block embedding in iframes. This is a fundamental browser security restriction — no client-side workaround exists.
 
-The Sandbox content extraction logic (lines 162-195 in `Sandbox.tsx`) only extracts two things from the generated HTML's `<head>`:
-- Google Fonts `<link>` tags (href starting with `https://fonts.googleapis.com/`)
+## Solution: Server-Side Proxy via Edge Function
 
-Everything else in `<head>` is discarded — including any `<style>` tags the AI generates for custom CSS (font-face declarations, custom utility classes, component styles). These styles are silently dropped, causing the rendered page to look broken.
+Create a backend edge function that fetches the target URL server-side and returns the HTML content, which Bowser then renders in its sandboxed iframe (like it does for AI-generated pages). This sidesteps iframe restrictions entirely.
 
-## Root Cause
+## Changes
 
-In `Sandbox.tsx`, the content pipeline:
-1. Extracts `<body>` innerHTML → sends as `html`
-2. Extracts font `<link>` hrefs → sends as `linkTags`
-3. **Drops all `<style>` tags from `<head>`** — never forwarded to the iframe
+### 1. New Edge Function: `supabase/functions/proxy-web/index.ts`
+- Accepts `{ url: string }` in the request body
+- Fetches the URL server-side using `fetch()`
+- Returns the raw HTML content
+- Rewrites relative URLs in the HTML to absolute URLs so assets (images, CSS) load correctly
+- Adds base tag pointing to the original domain
+- Strips problematic headers/scripts that would break sandboxed rendering
 
-The iframe shell's `CONTENT_UPDATE` handler (line 86) only sets `body.innerHTML` and injects font `<link>` elements. There is no mechanism to inject `<style>` blocks.
+### 2. `src/bowser/BowserApp.tsx`
+- Replace the direct `<iframe src={...}>` for web mode (lines 406-412) with a component that:
+  - Calls the `proxy-web` edge function to fetch page HTML
+  - Renders the result in a sandboxed iframe (similar to `Sandbox` component) or uses `srcdoc`
+  - Shows a loading spinner while fetching
+  - Shows an error state if the fetch fails
 
-## Fix
+### 3. New Component: `src/bowser/components/WebProxy.tsx`
+- Accepts `url` and `navigationId` props
+- On mount / URL change, calls the proxy edge function
+- Renders fetched HTML in a sandboxed iframe using `srcdoc`
+- Injects a `<base href="...">` tag so relative links resolve correctly
+- Intercepts link clicks and form submissions, routing them back through the proxy
 
-### 1. `src/bowser/components/Sandbox.tsx` — Extract and forward `<style>` tags
+### 4. `src/bowser/utils/navigation.ts`
+- When in default (new-tab) mode and user types a plain search query, route it through AI-generated search results instead of trying to embed a search engine page (since search engine results pages are particularly hostile to iframing)
+- Keep direct URL navigation going through the proxy for regular websites
 
-In the `useEffect` that processes `htmlContent`:
-- After extracting font `<link>` hrefs, also extract all `<style>` tag contents from the `<head>` section
-- Send them as a new `styleTags` array in the `CONTENT_UPDATE` message
+## Technical Details
 
-In the iframe shell's `CONTENT_UPDATE` message handler:
-- Remove previously injected `<style data-bowser-style>` elements
-- Inject each received style block as a new `<style data-bowser-style>` element in `<head>`
+```text
+User types "cats" in omnibar
+       │
+       ▼
+parseOmniboxInput() decides: search query
+       │
+       ▼
+  Option A: Route to proxy-web edge function
+            which fetches DuckDuckGo results
+            and returns HTML for srcdoc rendering
+       │
+  Option B: Route to AI generate instead,
+            producing a search-results-like page
+            (simpler, more reliable)
+```
 
-### 2. CSP adjustment (if needed)
+### Proxy approach limitations
+- JavaScript-heavy SPAs (React/Angular sites) won't work — only static/server-rendered HTML
+- Some sites detect proxy patterns and block them
+- Authentication-gated content won't work
+- This is best-effort; some sites will still fail
 
-The current CSP already has `style-src 'unsafe-inline'`, so dynamically created `<style>` elements will work. No CSP change needed.
+### Recommended hybrid approach
+- For **search queries**: Route through AI generation (already works well) — this avoids proxy complexity for the most common failure case
+- For **direct URL navigation**: Use the proxy edge function as a best-effort renderer
+- Show a "Open in new tab" fallback button when proxy rendering fails, using `window.open(url, '_blank')`
 
-### Files Changed
+## File Summary
 
 | File | Change |
 |---|---|
-| `src/bowser/components/Sandbox.tsx` | Extract `<style>` from generated `<head>`, forward via postMessage, inject in iframe shell handler |
+| `supabase/functions/proxy-web/index.ts` | **New** — server-side URL fetcher |
+| `src/bowser/components/WebProxy.tsx` | **New** — renders proxied HTML in sandboxed iframe |
+| `src/bowser/BowserApp.tsx` | Replace direct iframe with `WebProxy` component |
+| `src/bowser/utils/navigation.ts` | Route search queries to AI mode instead of web mode |
 

@@ -19,25 +19,6 @@ if (isPreviewHost || isInIframe) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
   });
-} else if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      /* SW registration failed — not critical */
-    });
-  });
 }
 
-// Remove splash screen once React mounts
-const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
-
-requestAnimationFrame(() => {
-  const splash = document.getElementById("bowser-splash");
-  if (splash) {
-    splash.classList.add("fade-out");
-    setTimeout(() => {
-      splash.remove();
-      document.getElementById("bowser-splash-style")?.remove();
-    }, 350);
-  }
-});
+createRoot(document.getElementById("root")!).render(<App />);

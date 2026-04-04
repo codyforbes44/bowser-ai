@@ -2,18 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-function jsonError(message: string, code: string, status: number, field?: string) {
-  return new Response(
-    JSON.stringify({ error: message, code, ...(field ? { field } : {}) }),
-    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
-}
-
-const VALID_ACTIONS = new Set(["summarize", "key-points", "simplify", "ask", "explain", "related"]);
 
 const ANALYSIS_PROMPTS: Record<string, string> = {
   summarize: "Provide a clear, concise summary of this content in 2-3 short paragraphs. Focus on the main content and purpose.",
@@ -24,125 +15,81 @@ const ANALYSIS_PROMPTS: Record<string, string> = {
   ask: "",
 };
 
-const TIMEOUT_MS = 25_000;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    if (req.signal?.aborted) {
-      return jsonError("Client disconnected", "INTERNAL_ERROR", 499);
-    }
-
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
-      return jsonError("Invalid JSON body", "INVALID_INPUT", 400);
-    }
-
-    const { action, question, pageHtml, url, title } = body;
-
-    // Validate action
-    if (!action || typeof action !== "string" || !VALID_ACTIONS.has(action)) {
-      return jsonError(
-        `action is required and must be one of: ${[...VALID_ACTIONS].join(", ")}`,
-        "INVALID_INPUT", 400, "action"
-      );
-    }
-
-    // Require at least one content source
-    if (!pageHtml && !url) {
-      return jsonError("At least one of pageHtml or url is required", "INVALID_INPUT", 400, "pageHtml");
-    }
-
-    if (pageHtml && typeof pageHtml !== "string") {
-      return jsonError("pageHtml must be a string", "INVALID_INPUT", 400, "pageHtml");
-    }
-    if (url && typeof url !== "string") {
-      return jsonError("url must be a string", "INVALID_INPUT", 400, "url");
-    }
+    const { action, question, pageHtml, url, title } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return jsonError("Server configuration error", "INTERNAL_ERROR", 500);
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const actionPrompt = action === "ask"
-      ? (typeof question === "string" && question.trim() ? question.trim() : "What is this page about?")
-      : (ANALYSIS_PROMPTS[action] || ANALYSIS_PROMPTS.summarize);
+    const actionPrompt = action === "ask" ? (question || "What is this page about?") : (ANALYSIS_PROMPTS[action] || ANALYSIS_PROMPTS.summarize);
 
     let systemPrompt: string;
     let userPrompt: string;
 
     if (pageHtml) {
+      // AI-generated tab — has full HTML
       systemPrompt = "You analyze web page content and provide clear, useful responses. Use plain text with minimal markdown (bold, bullets, paragraphs). Be concise and direct. Do not include HTML tags in your response.";
-      userPrompt = `${actionPrompt}\n\nPage content:\n${String(pageHtml).slice(0, 30000)}`;
+      userPrompt = `${actionPrompt}\n\nPage content:\n${pageHtml.slice(0, 30000)}`;
     } else {
+      // Web tab — URL context only
       systemPrompt = "You help users understand web content. The user is browsing a website and you're providing analysis based on the URL and topic. You cannot access the live page content directly — use your general knowledge about the URL, domain, and topic. Be honest about this limitation. Use plain text with minimal markdown (bold, bullets, paragraphs). Be concise and direct.";
-      userPrompt = `The user is browsing: ${url}${title && typeof title === "string" ? ` (page title: "${title.slice(0, 200)}")` : ""}\n\n${actionPrompt}`;
+      userPrompt = `The user is browsing: ${url}${title ? ` (page title: "${title}")` : ""}\n\n${actionPrompt}`;
     }
 
-    const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          stream: true,
+        }),
+      }
+    );
 
-    const combinedSignal = req.signal
-      ? AbortSignal.any([req.signal, timeoutController.signal])
-      : timeoutController.signal;
-
-    try {
-      const response = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            stream: true,
-          }),
-          signal: combinedSignal,
-        }
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Usage limit reached. Please add credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const text = await response.text();
+      console.error("AI gateway error:", status, text);
+      return new Response(
+        JSON.stringify({ error: "AI gateway error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const status = response.status;
-        await response.text().catch(() => "");
-        if (status === 429) {
-          return jsonError("Rate limit exceeded. Please try again in a moment.", "UPSTREAM_FAILED", 429);
-        }
-        if (status === 402) {
-          return jsonError("Usage limit reached. Please add credits.", "UPSTREAM_FAILED", 402);
-        }
-        console.error("AI gateway error:", status);
-        return jsonError("AI service temporarily unavailable", "UPSTREAM_FAILED", 502);
-      }
-
-      return new Response(response.body, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-      });
-    } catch (e: any) {
-      clearTimeout(timeoutId);
-      if (e?.name === "AbortError") {
-        if (req.signal?.aborted) {
-          return jsonError("Client disconnected", "INTERNAL_ERROR", 499);
-        }
-        return jsonError("Request timed out", "TIMEOUT", 504);
-      }
-      throw e;
     }
+
+    return new Response(response.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    });
   } catch (e) {
     console.error("analyze-content error:", e);
-    return jsonError("An unexpected error occurred", "INTERNAL_ERROR", 500);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

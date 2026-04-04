@@ -323,35 +323,18 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       )}
 
       <form onSubmit={handleSubmit} className="omnibar-form">
-        <div className="omnibar-wrapper" role="combobox" aria-expanded={isFocused && searchHistory.length > 0} aria-haspopup="listbox" aria-owns="omnibar-history-listbox">
+        <div className="omnibar-wrapper">
           {isLoading && !inputVal ? (
             <div className="omnibar-loading">{loadingMessage}</div>
           ) : (
             <div className="relative flex items-center w-full">
-              {/* Mode badge */}
-              {!isFocused && (
-                <div className="flex items-center pl-2 flex-shrink-0">
-                  {faviconUrl ? (
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]" style={{ color: isHttps ? 'var(--bw-green)' : 'var(--bw-red)' }} aria-label={isHttps ? 'Secure connection' : 'Not secure'}>
-                        {isHttps ? 'lock' : 'warning'}
-                      </span>
-                      <img src={faviconUrl} alt="" className="w-4 h-4 rounded-sm" />
-                    </div>
-                  ) : (
-                    <span
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold select-none"
-                      style={{
-                        background: isBrowserMode ? 'var(--bw-green-subtle, rgba(52,199,89,0.12))' : 'var(--bw-accent-muted)',
-                        color: isBrowserMode ? 'var(--bw-green)' : 'var(--bw-accent)',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }} aria-hidden="true">
-                        {isBrowserMode ? 'public' : 'auto_awesome'}
-                      </span>
-                      {isBrowserMode ? 'Web' : 'Create'}
-                    </span>
-                  )}
+              {/* Security badge / favicon */}
+              {faviconUrl && !isFocused && (
+                <div className="flex items-center gap-1 pl-2 flex-shrink-0">
+                  <span className="material-symbols-outlined text-[14px]" style={{ color: isHttps ? 'var(--bw-green)' : 'var(--bw-red)' }} aria-label={isHttps ? 'Secure connection' : 'Not secure'}>
+                    {isHttps ? 'lock' : 'warning'}
+                  </span>
+                  <img src={faviconUrl} alt="" className="w-4 h-4 rounded-sm" />
                 </div>
               )}
               <input
@@ -367,8 +350,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
                 style={error ? { borderColor: 'var(--bw-red)', background: 'var(--bw-red-subtle)' } : undefined}
                 placeholder={isBrowserMode ? 'Search or go to a URL' : 'Create anything…'}
                 aria-label="Search or enter a URL"
-                aria-autocomplete="list"
-                aria-controls="omnibar-history-listbox"
               />
               <button
                 type="submit"
@@ -400,7 +381,6 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           )}
           {isFocused && searchHistory.length > 0 && (
             <div
-              id="omnibar-history-listbox"
               className={`absolute ${isMobile ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 right-0 rounded-lg z-50 overflow-hidden max-h-60 overflow-y-auto`}
               role="listbox"
               aria-label="Recent searches"
@@ -551,6 +531,16 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             <span className="text-[11px] font-semibold select-none" style={{ color: !isBrowserMode ? 'var(--bw-accent)' : 'var(--bw-text-quaternary)' }}>Create</span>
           </button>
 
+          <div className="menu-container" ref={menuRef}>
+            <button className="nav-btn" onClick={() => setMenuOpen(!menuOpen)} title="More" aria-label="More options" aria-haspopup="true" aria-expanded={menuOpen}>
+              <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+          {menuOpen && (
+              <div className="dropdown-menu" role="menu">
+                {/* Intentionally empty — live data toggle is in the address bar globe button */}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

@@ -1,8 +1,21 @@
 import React from 'react';
-import { setStorageItem } from '../utils/storage';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 import { SearchEngine, SEARCH_ENGINES, getSearchEngine } from '../hooks/useOmnibox';
 import { FontSize, TabLimit, getFontSize, setFontSize, getTabLimit, setTabLimit, setSearchEngineSetting } from '../hooks/useBowserSettings';
-import { BowserTheme, getEffectiveTheme, applyBowserTheme } from '../utils/theme';
+
+export type BowserTheme = 'dark' | 'light' | 'system';
+
+export function getEffectiveTheme(): BowserTheme {
+  return getStorageItem<BowserTheme>('theme', 'dark');
+}
+
+export function applyBowserTheme(theme: BowserTheme) {
+  const root = document.documentElement;
+  const effective = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    : theme;
+  root.setAttribute('data-bowser-theme', effective);
+}
 
 const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
 const mod = isMac ? '⌘' : 'Ctrl';
@@ -15,20 +28,6 @@ const SHORTCUTS = [
   { keys: `${mod}+Shift+T`, description: 'Reopen closed tab' },
   { keys: `${mod}+1–9`, description: 'Switch to tab' },
 ];
-
-/* ─── Schema-driven settings ─── */
-
-type SettingType = 'segmented' | 'action';
-
-interface SettingEntry {
-  key: string;
-  label: string;
-  description: string;
-  section: string;
-  sectionIcon: string;
-  type: SettingType;
-  options?: { value: string; label: string }[];
-}
 
 interface SettingsTabProps {
   onClearHistory?: () => void;
@@ -50,65 +49,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
   const handleTabLimitChange = (l: TabLimit) => { setTabLimitState(l); setTabLimit(l); };
   const handleSearchEngineChange = (e: SearchEngine) => { setSearchEngineState(e); setSearchEngineSetting(e); };
 
-  const valueMap: Record<string, string> = {
-    theme,
-    fontSize,
-    tabLimit: String(tabLimit),
-    searchEngine,
-  };
-
-  const changeMap: Record<string, (v: string) => void> = {
-    theme: v => handleThemeChange(v as BowserTheme),
-    fontSize: v => handleFontSizeChange(v as FontSize),
-    tabLimit: v => handleTabLimitChange(Number(v) as TabLimit),
-    searchEngine: v => handleSearchEngineChange(v as SearchEngine),
-  };
-
-  const schema: SettingEntry[] = [
-    { key: 'theme', label: 'Theme', description: 'Choose light, dark, or match your system.', section: 'Appearance', sectionIcon: 'palette', type: 'segmented', options: [{ value: 'dark', label: 'dark' }, { value: 'light', label: 'light' }, { value: 'system', label: 'system' }] },
-    { key: 'fontSize', label: 'Font size', description: 'Adjust text size across the interface.', section: 'Appearance', sectionIcon: 'palette', type: 'segmented', options: [{ value: 'small', label: 'small' }, { value: 'medium', label: 'medium' }, { value: 'large', label: 'large' }] },
-    { key: 'searchEngine', label: 'Default search engine', description: 'Used for search queries in the address bar.', section: 'Search', sectionIcon: 'search', type: 'segmented', options: (Object.entries(SEARCH_ENGINES) as [string, { name: string }][]).map(([k, { name }]) => ({ value: k, label: name })) },
-    { key: 'tabLimit', label: 'Maximum tabs', description: 'Limit open tabs at once.', section: 'Tabs', sectionIcon: 'tab', type: 'segmented', options: [{ value: '5', label: '5' }, { value: '10', label: '10' }, { value: '20', label: '20' }, { value: '0', label: '∞' }] },
-    { key: 'clearHistory', label: 'Clear history', description: 'Remove all browsing history.', section: 'Privacy', sectionIcon: 'shield', type: 'action' },
-    { key: 'clearBookmarks', label: 'Clear bookmarks', description: 'Remove all saved bookmarks.', section: 'Privacy', sectionIcon: 'shield', type: 'action' },
-  ];
-
-  // Group by section
-  const sections = React.useMemo(() => {
-    const map = new Map<string, { icon: string; entries: SettingEntry[] }>();
-    for (const entry of schema) {
-      if (!map.has(entry.section)) map.set(entry.section, { icon: entry.sectionIcon, entries: [] });
-      map.get(entry.section)!.entries.push(entry);
-    }
-    return Array.from(map.entries());
-  }, []);
-
-  const renderActionButtons = (key: string) => {
-    if (key === 'clearHistory') {
-      if (confirmClearHistory) {
-        return (
-          <div className="flex gap-2">
-            <button onClick={() => { onClearHistory?.(); setConfirmClearHistory(false); }} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: '#fff', background: 'var(--bw-red)' }}>Confirm</button>
-            <button onClick={() => setConfirmClearHistory(false)} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: 'var(--bw-text-tertiary)', border: '1px solid var(--bw-border)' }}>Cancel</button>
-          </div>
-        );
-      }
-      return <ActionButton label="Clear" onClick={() => setConfirmClearHistory(true)} />;
-    }
-    if (key === 'clearBookmarks') {
-      if (confirmClearBookmarks) {
-        return (
-          <div className="flex gap-2">
-            <button onClick={() => { onClearBookmarks?.(); setConfirmClearBookmarks(false); }} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: '#fff', background: 'var(--bw-red)' }}>Confirm</button>
-            <button onClick={() => setConfirmClearBookmarks(false)} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: 'var(--bw-text-tertiary)', border: '1px solid var(--bw-border)' }}>Cancel</button>
-          </div>
-        );
-      }
-      return <ActionButton label="Clear" onClick={() => setConfirmClearBookmarks(true)} />;
-    }
-    return null;
-  };
-
   return (
     <div className="w-full h-full overflow-y-auto" style={{ background: 'var(--bw-bg-app)', color: 'var(--bw-text-primary)' }}>
       <div className="max-w-2xl mx-auto px-6 py-8">
@@ -118,28 +58,63 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
         </div>
 
         <div className="space-y-6">
-          {sections.map(([sectionName, { icon, entries }]) => (
-            <SettingsSection key={sectionName} icon={icon} title={sectionName}>
-              {entries.map(entry => (
-                <SettingsRow key={entry.key} label={entry.label} description={entry.description}>
-                  {entry.type === 'segmented' && entry.options ? (
-                    <SegmentedButtons
-                      options={entry.options.map(o => o.label)}
-                      value={entry.options.find(o => o.value === valueMap[entry.key])?.label || ''}
-                      onChange={label => {
-                        const opt = entry.options!.find(o => o.label === label);
-                        if (opt) changeMap[entry.key]?.(opt.value);
-                      }}
-                    />
-                  ) : (
-                    renderActionButtons(entry.key)
-                  )}
-                </SettingsRow>
-              ))}
-            </SettingsSection>
-          ))}
+          {/* Appearance */}
+          <SettingsSection icon="palette" title="Appearance">
+            <SettingsRow label="Theme" description="Choose light, dark, or match your system.">
+              <SegmentedButtons options={['dark', 'light', 'system']} value={theme} onChange={v => handleThemeChange(v as BowserTheme)} />
+            </SettingsRow>
+            <SettingsRow label="Font size" description="Adjust text size across the interface.">
+              <SegmentedButtons options={['small', 'medium', 'large']} value={fontSize} onChange={v => handleFontSizeChange(v as FontSize)} />
+            </SettingsRow>
+          </SettingsSection>
 
-          {/* About (non-schema) */}
+          {/* Search */}
+          <SettingsSection icon="search" title="Search">
+            <SettingsRow label="Default search engine" description="Used for search queries in the address bar.">
+              <div className="flex gap-1 flex-wrap justify-end">
+                {(Object.entries(SEARCH_ENGINES) as [SearchEngine, { name: string }][]).map(([key, { name }]) => (
+                  <SegmentedButton key={key} label={name} active={searchEngine === key} onClick={() => handleSearchEngineChange(key)} />
+                ))}
+              </div>
+            </SettingsRow>
+          </SettingsSection>
+
+          {/* Tabs */}
+          <SettingsSection icon="tab" title="Tabs">
+            <SettingsRow label="Maximum tabs" description="Limit open tabs at once.">
+              <div className="flex gap-1">
+                {([5, 10, 20, 0] as TabLimit[]).map(l => (
+                  <SegmentedButton key={l} label={l === 0 ? '∞' : String(l)} active={tabLimit === l} onClick={() => handleTabLimitChange(l)} />
+                ))}
+              </div>
+            </SettingsRow>
+          </SettingsSection>
+
+          {/* Privacy */}
+          <SettingsSection icon="shield" title="Privacy">
+            <SettingsRow label="Clear history" description="Remove all browsing history.">
+              {confirmClearHistory ? (
+                <div className="flex gap-2">
+                  <button onClick={() => { onClearHistory?.(); setConfirmClearHistory(false); }} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: '#fff', background: 'var(--bw-red)' }}>Confirm</button>
+                  <button onClick={() => setConfirmClearHistory(false)} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: 'var(--bw-text-tertiary)', border: '1px solid var(--bw-border)' }}>Cancel</button>
+                </div>
+              ) : (
+                <ActionButton label="Clear" onClick={() => setConfirmClearHistory(true)} />
+              )}
+            </SettingsRow>
+            <SettingsRow label="Clear bookmarks" description="Remove all saved bookmarks.">
+              {confirmClearBookmarks ? (
+                <div className="flex gap-2">
+                  <button onClick={() => { onClearBookmarks?.(); setConfirmClearBookmarks(false); }} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: '#fff', background: 'var(--bw-red)' }}>Confirm</button>
+                  <button onClick={() => setConfirmClearBookmarks(false)} className="px-3 py-1 text-[12px] font-medium rounded" style={{ color: 'var(--bw-text-tertiary)', border: '1px solid var(--bw-border)' }}>Cancel</button>
+                </div>
+              ) : (
+                <ActionButton label="Clear" onClick={() => setConfirmClearBookmarks(true)} />
+              )}
+            </SettingsRow>
+          </SettingsSection>
+
+          {/* About */}
           <SettingsSection icon="info" title="About">
             <div className="space-y-3">
               <p className="text-[12px] leading-relaxed" style={{ color: 'var(--bw-text-tertiary)' }}>
@@ -158,7 +133,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
                   style={{ color: 'var(--bw-accent)', transition: 'opacity 0.1s ease' }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                  aria-label="View welcome tour"
                 >
                   View welcome tour
                 </button>
@@ -169,8 +143,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
                   onClick={() => setShowShortcuts(p => !p)}
                   className="flex items-center gap-1.5 text-[12px] font-medium"
                   style={{ color: 'var(--bw-text-secondary)', transition: 'color 0.1s ease' }}
-                  aria-expanded={showShortcuts}
-                  aria-label="Keyboard shortcuts"
                 >
                   <span className="material-symbols-outlined icon-sm" style={{ transform: showShortcuts ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }} aria-hidden="true">chevron_right</span>
                   Keyboard shortcuts
@@ -198,8 +170,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ onClearHistory, onClea
 
 /* Reusable sub-components */
 const SettingsSection: React.FC<{ icon: string; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-  <section className="settings-section" aria-labelledby={`settings-${title}`}>
-    <h2 id={`settings-${title}`} className="text-[11px] font-medium uppercase tracking-widest mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-quaternary)' }}>
+  <section className="settings-section">
+    <h2 className="text-[11px] font-medium uppercase tracking-widest mb-4 flex items-center gap-2" style={{ color: 'var(--bw-text-quaternary)' }}>
       <span className="material-symbols-outlined icon-sm" aria-hidden="true">{icon}</span>
       {title}
     </h2>
@@ -227,14 +199,13 @@ const SegmentedButton: React.FC<{ label: string; active: boolean; onClick: () =>
       border: `1px solid ${active ? 'var(--bw-accent)' : 'var(--bw-border)'}`,
       transition: 'all 0.1s ease',
     }}
-    aria-pressed={active}
   >
     {label}
   </button>
 );
 
 const SegmentedButtons: React.FC<{ options: string[]; value: string; onChange: (v: string) => void }> = ({ options, value, onChange }) => (
-  <div className="flex gap-1" role="group">
+  <div className="flex gap-1">
     {options.map(o => <SegmentedButton key={o} label={o} active={value === o} onClick={() => onChange(o)} />)}
   </div>
 );

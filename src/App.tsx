@@ -1,10 +1,5 @@
 import BowserApp from "./bowser/BowserApp";
-import { ErrorBoundary } from "./bowser/components/ErrorBoundary";
 
-const App = () => (
-  <ErrorBoundary fallbackLevel="app">
-    <BowserApp />
-  </ErrorBoundary>
-);
+const App = () => <BowserApp />;
 
 export default App;
