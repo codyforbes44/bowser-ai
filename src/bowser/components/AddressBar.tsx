@@ -529,6 +529,9 @@ export const AddressBar: React.FC<AddressBarProps> = ({
             isLoading={isLoading}
             isBrowserMode={isBrowserMode}
             onToggleBrowserMode={onToggleBrowserMode}
+            onOpenSettings={onOpenSettings}
+            onOpenHistory={onOpenHistory}
+            onOpenBookmarks={onOpenBookmarks}
           />
         </div>
       ) : (
