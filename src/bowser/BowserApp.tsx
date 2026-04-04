@@ -42,8 +42,7 @@ const BowserApp: React.FC = () => {
     activeTab, updateTabById,
   });
 
-  const { executeAgent, cancelAgent } = useAgentExecute({ updateTabById });
-  const [agentTasks, setAgentTasks] = useState<Map<string, AgentTask>>(new Map());
+  const { executeAgent, cancelAgent, confirmStep, pinInsight, unpinInsight } = useAgentExecute({ updateTabById });
 
   const { handleOmnibarNavigate } = useOmnibox({
     activeTab, currentPage, updateTabById, generate, rebuild, addHistoryEntry,
