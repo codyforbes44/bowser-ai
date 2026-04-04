@@ -498,6 +498,9 @@ export const BrowserShell: React.FC<BrowserShellProps> = ({
             webHistoryUrls={webHistoryUrls}
             onWebHistoryNavigate={onWebHistoryNavigate}
             onToggleSidePanel={onToggleSidePanel}
+            onOpenSettings={onOpenSettings}
+            onOpenHistory={onOpenHistory}
+            onOpenBookmarks={onOpenBookmarks}
           />
           {mobileTabBar}
         </div>
