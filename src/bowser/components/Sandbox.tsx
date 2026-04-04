@@ -13,8 +13,8 @@ const SHELL_HTML = `<!DOCTYPE html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob: https:; connect-src https://cdn.tailwindcss.com; frame-src 'none';">
-    <script src="https://cdn.tailwindcss.com"><\/script>
+      content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob: https:; connect-src https:; frame-src 'none';">
+    <script src="https://cdn.tailwindcss.com" onload="window.__twLoaded=true"><\/script>
     <script id="bowser-api">
       function getFormState() {
         const fields = [];
@@ -82,31 +82,48 @@ const SHELL_HTML = `<!DOCTYPE html>
         });
       }
 
+      function injectContent(data) {
+        // Inject custom styles from generated <head>
+        document.head.querySelectorAll('style[data-bowser-style]').forEach(el => el.remove());
+        (data.styleTags || []).forEach(css => {
+          const style = document.createElement('style');
+          style.setAttribute('data-bowser-style', 'true');
+          style.textContent = css;
+          document.head.appendChild(style);
+        });
+
+        // Inject font links
+        document.head.querySelectorAll('link[data-bowser-font]').forEach(el => el.remove());
+        (data.linkTags || []).forEach(href => {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = href;
+          link.setAttribute('data-bowser-font', 'true');
+          document.head.appendChild(link);
+        });
+
+        // Set body content and attributes
+        document.body.innerHTML = data.html;
+        document.body.className = 'min-h-screen ' + (data.bodyClasses || '');
+        document.body.setAttribute('style', data.bodyStyle || '');
+        document.documentElement.style.colorScheme = data.colorScheme || 'light';
+
+        // Force Tailwind to re-process: the MutationObserver may miss
+        // a bulk innerHTML replacement. Re-setting innerHTML triggers
+        // a fresh childList mutation that Tailwind's observer catches.
+        if (window.__twLoaded) {
+          requestAnimationFrame(() => {
+            document.body.innerHTML = document.body.innerHTML;
+            document.fonts.ready.then(() => hideBrokenIcons());
+          });
+        } else {
+          document.fonts.ready.then(() => hideBrokenIcons());
+        }
+      }
+
       window.addEventListener('message', (e) => {
         if (e.data?.type === 'CONTENT_UPDATE') {
-          document.body.innerHTML = e.data.html;
-          document.body.className = 'min-h-screen ' + (e.data.bodyClasses || '');
-          document.body.setAttribute('style', e.data.bodyStyle || '');
-          document.documentElement.style.colorScheme = e.data.colorScheme || 'light';
-
-          document.head.querySelectorAll('link[data-bowser-font]').forEach(el => el.remove());
-          (e.data.linkTags || []).forEach(href => {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = href;
-            link.setAttribute('data-bowser-font', 'true');
-            document.head.appendChild(link);
-          });
-
-          document.head.querySelectorAll('style[data-bowser-style]').forEach(el => el.remove());
-          (e.data.styleTags || []).forEach(css => {
-            const style = document.createElement('style');
-            style.setAttribute('data-bowser-style', 'true');
-            style.textContent = css;
-            document.head.appendChild(style);
-          });
-
-          document.fonts.ready.then(() => hideBrokenIcons());
+          injectContent(e.data);
         }
       });
 
@@ -172,6 +189,8 @@ export const Sandbox: React.FC<SandboxProps> = ({ htmlContent, onNavigate, onAct
     const styleContents: string[] = [];
     if (headMatch) {
       const headContent = headMatch[1];
+
+      // Extract font <link> tags
       const linkMatches = headContent.match(/<link[^>]*>/gi);
       if (linkMatches) {
         linkMatches.forEach(tag => {
@@ -184,6 +203,8 @@ export const Sandbox: React.FC<SandboxProps> = ({ htmlContent, onNavigate, onAct
           }
         });
       }
+
+      // Extract <style> tags from <head>
       const styleMatches = headContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
       if (styleMatches) {
         styleMatches.forEach(tag => {
