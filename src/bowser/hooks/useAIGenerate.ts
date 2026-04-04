@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { Page, Breadcrumb, TokenCount, FormFieldState, Tab } from '../types';
-import { streamPageGeneration } from '../services/geminiService';
+import { streamPageGeneration, streamPageRebuild } from '../services/geminiService';
 import { extractTitleFromHtml, siteNameFromPrompt } from '../utils/urlHelpers';
 import { addRecentPrompt } from '../store/session';
 
